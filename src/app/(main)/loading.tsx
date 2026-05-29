@@ -1,5 +1,5 @@
-import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import { MainPageSkeleton } from "@/components/layout/main-page-skeleton";
 
 export default function MainLoading() {
-  return <LoadingOverlay message="Loading…" />;
+  return <MainPageSkeleton />;
 }
