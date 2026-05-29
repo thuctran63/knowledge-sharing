@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PenLine, Clock, Trash2, Loader2 } from "lucide-react";
@@ -28,7 +28,7 @@ interface DraftCardProps {
   };
 }
 
-export function DraftCard({ post }: DraftCardProps) {
+export const DraftCard = memo(function DraftCard({ post }: DraftCardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { withLoading } = useLoading();
@@ -159,4 +159,4 @@ export function DraftCard({ post }: DraftCardProps) {
       </Dialog>
     </>
   );
-}
+});

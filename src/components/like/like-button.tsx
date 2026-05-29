@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Heart } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,7 @@ export function LikeButton({
   const { data: session } = useSession();
   const router = useRouter();
   const { toast } = useToast();
+  const pendingRef = useRef(false);
 
   const handleToggle = async () => {
     if (!session) {
@@ -35,7 +36,12 @@ export function LikeButton({
       return;
     }
 
+    if (pendingRef.current) return;
+    pendingRef.current = true;
+
     setLoading(true);
+    const prevLiked = liked;
+    const prevCount = likeCount;
     setLiked(!liked);
     setLikeCount((prev) => (liked ? prev - 1 : prev + 1));
 
@@ -47,14 +53,15 @@ export function LikeButton({
       });
 
       if (!res.ok) {
-        setLiked(liked);
-        setLikeCount(initialLikes);
+        setLiked(prevLiked);
+        setLikeCount(prevCount);
       }
     } catch {
-      setLiked(liked);
-      setLikeCount(initialLikes);
+      setLiked(prevLiked);
+      setLikeCount(prevCount);
     } finally {
       setLoading(false);
+      pendingRef.current = false;
       router.refresh();
     }
   };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { useLoading } from "@/components/providers/loading-provider";
 import { timeAgo, cn } from "@/lib/utils";
-import { MessageCircle, Edit3, Trash2, Reply, ChevronDown, ChevronRight } from "lucide-react";
+import { MessageCircle, Edit3, Trash2, Reply } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { CommentWithAuthor } from "@/types";
 
@@ -96,8 +97,11 @@ export function CommentList({ comments, postId }: CommentListProps) {
     }
   };
 
-  const handleDelete = async (commentId: string) => {
-    if (!confirm("Delete this comment?")) return;
+  const handleDelete = async (commentId: string, hasReplies: boolean) => {
+    const msg = hasReplies
+      ? "Delete this comment? All replies will also be deleted."
+      : "Delete this comment?";
+    if (!confirm(msg)) return;
 
     try {
       await withLoading(async () => {
@@ -198,7 +202,7 @@ export function CommentList({ comments, postId }: CommentListProps) {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(comment.id)}
+                    onClick={() => handleDelete(comment.id, replies.length > 0)}
                     className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -210,12 +214,13 @@ export function CommentList({ comments, postId }: CommentListProps) {
 
             {replyTo === comment.id && (
               <div className="mt-3 space-y-2">
-                <Textarea
-                  placeholder="Write a reply..."
-                  value={replyContent}
-                  onChange={(e) => setReplyContent(e.target.value)}
-                  className="min-h-[60px] text-sm"
-                />
+                  <Textarea
+                    placeholder="Write a reply..."
+                    value={replyContent}
+                    maxLength={2000}
+                    onChange={(e) => setReplyContent(e.target.value)}
+                    className="min-h-[60px] text-sm"
+                  />
                 <div className="flex gap-2">
                   <Button
                     size="sm"
@@ -249,10 +254,6 @@ export function CommentList({ comments, postId }: CommentListProps) {
     );
   };
 
-  if (comments.length === 0 && !session) {
-    return null;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -267,6 +268,7 @@ export function CommentList({ comments, postId }: CommentListProps) {
           <Textarea
             placeholder="Share your thoughts..."
             value={newComment}
+            maxLength={2000}
             onChange={(e) => setNewComment(e.target.value)}
             className="min-h-[100px]"
           />
@@ -280,6 +282,15 @@ export function CommentList({ comments, postId }: CommentListProps) {
             </Button>
           </div>
         </div>
+      )}
+
+      {!session && comments.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-8">
+          <Link href="/login" className="text-primary hover:underline">
+            Sign in
+          </Link>{" "}
+          to leave a comment.
+        </p>
       )}
 
       {comments.length > 0 ? (

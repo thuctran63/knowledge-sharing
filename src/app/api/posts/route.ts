@@ -71,12 +71,20 @@ export async function GET(req: Request) {
       bookmarks: undefined,
     }));
 
-    return NextResponse.json({
-      data: formattedPosts,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    });
+    return NextResponse.json(
+      {
+        data: formattedPosts,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      },
+      {
+        headers:
+          currentUserId
+            ? {}
+            : { "Cache-Control": "public, max-age=60, s-maxage=120" },
+      }
+    );
   } catch (error) {
     console.error("[POSTS_GET]", error);
     return NextResponse.json(

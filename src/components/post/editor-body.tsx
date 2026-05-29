@@ -237,6 +237,7 @@ export function EditorBody({
                 <img
                   src={displayUrl}
                   alt={block.alt || "Article image"}
+                  loading="lazy"
                   className={cn(
                     "w-full max-h-[480px] object-contain bg-muted/30",
                     block.status === "uploading" && "opacity-70"

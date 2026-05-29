@@ -83,19 +83,20 @@ export async function PATCH(
     if (published !== undefined) updateData.published = published;
 
     if (tags !== undefined) {
-      await prisma.postTag.deleteMany({ where: { postId: id } });
-      await prisma.postTag.createMany({
-        data: await Promise.all(
-          tags.map(async (name: string) => {
-            const tag = await prisma.tag.upsert({
-              where: { name },
-              update: {},
-              create: { name },
-            });
-            return { postId: id, tagId: tag.id };
-          })
-        ),
-      });
+      const tagData = await Promise.all(
+        tags.map(async (name: string) => {
+          const tag = await prisma.tag.upsert({
+            where: { name },
+            update: {},
+            create: { name },
+          });
+          return { postId: id, tagId: tag.id };
+        })
+      );
+      await prisma.$transaction([
+        prisma.postTag.deleteMany({ where: { postId: id } }),
+        prisma.postTag.createMany({ data: tagData }),
+      ]);
     }
 
     const updated = await prisma.post.update({

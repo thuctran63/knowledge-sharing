@@ -54,6 +54,15 @@ export function SearchContent() {
     );
   };
 
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    if (q !== query) {
+      setQuery(q);
+      if (q.trim()) doSearch(q);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   return (
     <>
       <form

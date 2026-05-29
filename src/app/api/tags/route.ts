@@ -19,7 +19,8 @@ export async function GET() {
         id: tag.id,
         name: tag.name,
         count: tag._count.posts,
-      }))
+      })),
+      { headers: { "Cache-Control": "public, max-age=60, s-maxage=120" } }
     );
   } catch (error) {
     console.error("[TAGS_GET]", error);

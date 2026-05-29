@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
+import { currentYear } from "@/lib/utils";
 
 const linkClass =
   "text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors";
@@ -103,7 +104,7 @@ export function Footer() {
 
         <div className="mt-5 pt-4 md:mt-10 md:pt-6 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-2 md:gap-4">
           <p className="text-[11px] md:text-xs text-muted-foreground text-center sm:text-left">
-            &copy; {new Date().getFullYear()} Knowledge. All rights reserved.
+            &copy; {currentYear} Knowledge. All rights reserved.
           </p>
           <p className="hidden sm:block text-xs text-muted-foreground">
             Built with care for the curious.

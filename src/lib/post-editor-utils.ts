@@ -27,7 +27,13 @@ export function makeSnapshot(
 }
 
 export function snapshotsEqual(a: EditorSnapshot, b: EditorSnapshot) {
-  return JSON.stringify(a) === JSON.stringify(b);
+  if (a.title !== b.title) return false;
+  if (a.content.length !== b.content.length) return false;
+  if (a.content !== b.content) return false;
+  if (a.excerpt !== b.excerpt) return false;
+  if (a.published !== b.published) return false;
+  if (a.tags.length !== b.tags.length) return false;
+  return a.tags.every((t, i) => t === b.tags[i]);
 }
 
 export function hasEditorContent(
@@ -69,7 +75,7 @@ export function removeImageFromContent(content: string, url: string) {
 }
 
 export function draftSlug() {
-  return `draft-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  return `draft-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 4)}`;
 }
 
 export function urlsInSnapshot(snapshot: EditorSnapshot) {

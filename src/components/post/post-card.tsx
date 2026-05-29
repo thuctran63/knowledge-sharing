@@ -6,13 +6,14 @@ import { UserAvatar } from "@/components/user/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate, readingTime, timeAgo } from "@/lib/utils";
 import type { PostCardData } from "@/types";
+import { memo } from "react";
 
 interface PostCardProps {
   post: PostCardData;
   featured?: boolean;
 }
 
-export function PostCard({ post, featured = false }: PostCardProps) {
+export const PostCard = memo(function PostCard({ post, featured = false }: PostCardProps) {
   return (
     <article
       className={cn(
@@ -97,4 +98,4 @@ export function PostCard({ post, featured = false }: PostCardProps) {
       </Link>
     </article>
   );
-}
+});

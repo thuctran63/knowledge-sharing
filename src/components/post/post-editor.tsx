@@ -2,10 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import rehypeSlug from "rehype-slug";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,49 +48,21 @@ import {
   blockId,
   fileNameToAlt,
 } from "@/lib/markdown-blocks";
-import { EditorBody, type FocusBlockRequest } from "@/components/post/editor-body";
 import { EditorToolbar } from "@/components/post/editor-toolbar";
+import type { FocusBlockRequest } from "@/components/post/editor-body";
 import type { Post } from "@prisma/client";
-import "highlight.js/styles/github-dark.css";
+
+const MarkdownPreview = dynamic(
+  () => import("@/components/post/markdown-preview").then((m) => m.MarkdownPreview),
+  { loading: () => <div className="min-h-[420px] animate-pulse rounded-xl bg-muted" /> }
+);
+
+const EditorBody = dynamic(
+  () => import("@/components/post/editor-body").then((m) => m.EditorBody),
+  { loading: () => <div className="min-h-[420px] animate-pulse rounded-xl bg-muted" /> }
+);
 
 type EditorView = "story" | "preview";
-
-const markdownPlugins = {
-  remarkPlugins: [remarkGfm],
-  rehypePlugins: [rehypeHighlight, rehypeSlug],
-};
-
-function MarkdownPreview({ content }: { content: string }) {
-  if (!content.trim()) {
-    return (
-      <p className="text-sm text-muted-foreground italic">
-        Your article preview will appear here…
-      </p>
-    );
-  }
-
-  return (
-    <ReactMarkdown
-      {...markdownPlugins}
-      components={{
-        img: ({ src, alt }) => {
-          const url = typeof src === "string" ? src : "";
-          if (!url.trim()) return null;
-          return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={url}
-              alt={alt ?? ""}
-              className="rounded-lg max-w-full h-auto my-4"
-            />
-          );
-        },
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  );
-}
 
 interface PostEditorProps {
   post?: Post & { tags: { id: string; name: string }[] };
@@ -657,6 +626,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           type="text"
           placeholder="Title"
           value={title}
+          maxLength={200}
           onChange={(e) => setTitle(e.target.value)}
           className="h-auto border-0 bg-transparent px-0 text-2xl sm:text-3xl font-heading font-semibold tracking-tight placeholder:text-muted-foreground/30 focus-visible:ring-0"
         />
@@ -664,6 +634,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
         <Textarea
           placeholder="Short summary (optional)"
           value={excerpt}
+          maxLength={300}
           onChange={(e) => setExcerpt(e.target.value)}
           className="resize-none border-0 bg-transparent px-0 text-sm text-muted-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0"
           rows={2}
@@ -790,6 +761,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
                 {tag}
                 <button
                   type="button"
+                  aria-label={`Remove ${tag}`}
                   onClick={() => setTags(tags.filter((t) => t !== tag))}
                 >
                   <X className="h-3 w-3" />

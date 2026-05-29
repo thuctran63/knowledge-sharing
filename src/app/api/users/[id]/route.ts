@@ -73,7 +73,8 @@ export async function PATCH(
 
     const formData = await req.formData();
     const file = formData.get("avatar") as File | null;
-    const bio = formData.get("bio") as string | null;
+    const bioEntry = formData.get("bio");
+    const bio = typeof bioEntry === "string" ? bioEntry : null;
 
     const updateData: Record<string, string> = {};
     const oldImageUrl = existing?.image ?? null;

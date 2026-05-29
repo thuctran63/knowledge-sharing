@@ -78,6 +78,10 @@ model Post {
   comments  Comment[]
   likes     Like[]
   bookmarks Bookmark[]
+
+  @@index([published, createdAt])
+  @@index([published, viewCount])
+  @@index([authorId, published])
 }
 
 model Tag {
@@ -110,6 +114,9 @@ model Comment {
   parentId String?
   parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentReplies")
+
+  @@index([postId, createdAt])
+  @@index([parentId])
 }
 
 model Like {

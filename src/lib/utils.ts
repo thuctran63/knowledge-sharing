@@ -17,7 +17,7 @@ export function slugify(text: string): string {
 
 export function generateSlug(title: string): string {
   const base = slugify(title);
-  const suffix = Math.random().toString(36).substring(2, 7);
+  const suffix = crypto.randomUUID().slice(0, 5);
   return `${base}-${suffix}`;
 }
 
@@ -58,6 +58,8 @@ export function readingTime(content: string): number {
   const words = content.split(/\s+/).length;
   return Math.ceil(words / wordsPerMinute);
 }
+
+export const currentYear = new Date().getFullYear();
 
 export function truncate(text: string, length: number): string {
   if (text.length <= length) return text;

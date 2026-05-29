@@ -181,6 +181,7 @@ export function Header() {
           "md:hidden fixed inset-x-0 top-16 z-40 border-b border-border/40 bg-background/95 backdrop-blur-xl transition-all duration-200 overflow-hidden",
           mobileMenuOpen ? "max-h-80" : "max-h-0"
         )}
+        onKeyDown={(e) => e.key === "Escape" && setMobileMenuOpen(false)}
       >
         <div className="container py-4 space-y-3">
           <Link

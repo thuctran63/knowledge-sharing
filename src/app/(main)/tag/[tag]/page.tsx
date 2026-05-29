@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -49,6 +49,11 @@ async function getTagPosts(tagName: string) {
 
 export async function generateMetadata({ params }: TagPageProps) {
   const { tag } = await params;
+  const existing = await prisma.tag.findUnique({
+    where: { name: tag },
+    select: { id: true },
+  });
+  if (!existing) return { title: "Tag not found" };
   return {
     title: `#${tag} - Articles`,
     description: `Browse articles tagged with #${tag}.`,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Bookmark } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ export function BookmarkButton({
   const { data: session } = useSession();
   const router = useRouter();
   const { toast } = useToast();
+  const pendingRef = useRef(false);
 
   const handleToggle = async () => {
     if (!session) {
@@ -31,7 +32,11 @@ export function BookmarkButton({
       return;
     }
 
+    if (pendingRef.current) return;
+    pendingRef.current = true;
+
     setLoading(true);
+    const prev = bookmarked;
     setBookmarked(!bookmarked);
 
     try {
@@ -42,12 +47,13 @@ export function BookmarkButton({
       });
 
       if (!res.ok) {
-        setBookmarked(bookmarked);
+        setBookmarked(prev);
       }
     } catch {
-      setBookmarked(bookmarked);
+      setBookmarked(prev);
     } finally {
       setLoading(false);
+      pendingRef.current = false;
       router.refresh();
     }
   };

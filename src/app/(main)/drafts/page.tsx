@@ -17,12 +17,11 @@ export const metadata: Metadata = {
 
 function isEmptyDraft(post: {
   title: string;
-  content: string;
   excerpt: string | null;
 }) {
   const noTitle =
     !post.title.trim() || post.title.toLowerCase() === "untitled";
-  return noTitle && !post.content.trim() && !post.excerpt?.trim();
+  return noTitle && !post.excerpt?.trim();
 }
 
 export default async function MyArticlesPage() {

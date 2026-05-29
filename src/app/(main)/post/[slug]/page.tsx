@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -19,7 +19,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
 import { Clock, Eye, Heart, MessageCircle, Bookmark, PenLine } from "lucide-react";
-import "highlight.js/styles/github-dark.css";
+
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;

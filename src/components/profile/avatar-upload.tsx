@@ -120,7 +120,7 @@ export function AvatarUpload({
               onClick={() => inputRef.current?.click()}
               className={cn(
                 "absolute inset-0 flex items-center justify-center rounded-full",
-                "bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+                "bg-black/40 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-200",
                 uploading && "opacity-100"
               )}
               aria-label="Upload avatar"

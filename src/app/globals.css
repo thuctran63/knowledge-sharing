@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 @layer base {
   :root {
     --font-heading: 'DM Serif Display', Georgia, serif;
@@ -20,7 +18,7 @@
     --secondary: 36 20% 92%;
     --secondary-foreground: 36 10% 15%;
     --muted: 36 15% 92%;
-    --muted-foreground: 36 10% 45%;
+    --muted-foreground: 36 10% 35%;
     --accent: 22 55% 52%;
     --accent-foreground: 36 33% 97%;
     --destructive: 0 72% 51%;
@@ -43,7 +41,7 @@
     --secondary: 36 8% 16%;
     --secondary-foreground: 36 15% 85%;
     --muted: 36 8% 15%;
-    --muted-foreground: 36 8% 55%;
+    --muted-foreground: 36 8% 65%;
     --accent: 22 55% 52%;
     --accent-foreground: 36 33% 97%;
     --destructive: 0 72% 51%;
