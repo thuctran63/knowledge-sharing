@@ -46,12 +46,12 @@ import {
   markdownToBlocks,
   blocksToMarkdown,
   hasBlockContent,
-  insertBlocksAfter,
+  insertImagesWithTypingParagraph,
   removeImageBlock,
   blockId,
   fileNameToAlt,
 } from "@/lib/markdown-blocks";
-import { EditorBody } from "@/components/post/editor-body";
+import { EditorBody, type FocusBlockRequest } from "@/components/post/editor-body";
 import { EditorToolbar } from "@/components/post/editor-toolbar";
 import type { Post } from "@prisma/client";
 import "highlight.js/styles/github-dark.css";
@@ -128,8 +128,11 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
   const [editorView, setEditorView] = useState<EditorView>("story");
   const [isDragging, setIsDragging] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+  const [focusBlockRequest, setFocusBlockRequest] =
+    useState<FocusBlockRequest | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingFocusParagraphRef = useRef<string | null>(null);
   const lastSavedRef = useRef<EditorSnapshot>(
     makeSnapshot(
       post?.title || "",
@@ -412,6 +415,11 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
     return url;
   };
 
+  const requestParagraphFocus = useCallback((paragraphId: string) => {
+    pendingFocusParagraphRef.current = paragraphId;
+    setFocusBlockRequest({ id: paragraphId, seq: Date.now() });
+  }, []);
+
   const addImageFiles = async (
     files: File[],
     afterBlockId: string | null = null
@@ -442,12 +450,19 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
         previewUrl: URL.createObjectURL(file),
       }));
 
+    let focusParagraphId: string | null = null;
     setBlocks((prev) => {
       const lastParagraph = [...prev].reverse().find((b) => b.type === "paragraph");
       const anchor =
         afterBlockId ?? (lastParagraph ? lastParagraph.id : prev[prev.length - 1]?.id ?? null);
-      return insertBlocksAfter(prev, anchor, pendingBlocks);
+      const result = insertImagesWithTypingParagraph(prev, anchor, pendingBlocks);
+      focusParagraphId = result.focusParagraphId;
+      return result.blocks;
     });
+
+    if (focusParagraphId) {
+      requestParagraphFocus(focusParagraphId);
+    }
 
     try {
       await withLoading(async () => {
@@ -504,6 +519,9 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
       setUploading(false);
       setUploadLabel(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (pendingFocusParagraphRef.current) {
+        requestParagraphFocus(pendingFocusParagraphRef.current);
+      }
     }
   };
 
@@ -744,11 +762,13 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
               blocks={blocks}
               onChange={setBlocks}
               onPasteFiles={(files, afterId) => void addImageFiles(files, afterId)}
-              onDropFiles={(files) => void addImageFiles(files)}
+              onDropFiles={(files, afterId) => void addImageFiles(files, afterId)}
               onRemoveImage={handleRemoveImage}
-              disabled={uploading || syncState === "saving"}
+              disabled={syncState === "saving"}
               isDragging={isDragging}
               onDragStateChange={setIsDragging}
+              focusBlockRequest={focusBlockRequest}
+              onFocusBlockHandled={() => setFocusBlockRequest(null)}
             />
           )}
 

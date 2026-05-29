@@ -111,6 +111,41 @@ export function insertBlocksAfter(
   ];
 }
 
+/** Insert images and ensure a paragraph exists below them for continued typing. */
+export function insertImagesWithTypingParagraph(
+  blocks: EditorBlock[],
+  afterId: string | null,
+  imageBlocks: EditorBlock[]
+): { blocks: EditorBlock[]; focusParagraphId: string } {
+  const merged = insertBlocksAfter(blocks, afterId, imageBlocks);
+
+  const anchorIndex = afterId ? blocks.findIndex((b) => b.id === afterId) : -1;
+  const afterImagesIndex =
+    anchorIndex === -1
+      ? merged.length
+      : anchorIndex + 1 + imageBlocks.length;
+
+  const nextBlock = merged[afterImagesIndex];
+  if (nextBlock?.type === "paragraph") {
+    return { blocks: merged, focusParagraphId: nextBlock.id };
+  }
+
+  const newParagraph: ParagraphBlock = {
+    id: blockId(),
+    type: "paragraph",
+    text: "",
+  };
+
+  return {
+    blocks: [
+      ...merged.slice(0, afterImagesIndex),
+      newParagraph,
+      ...merged.slice(afterImagesIndex),
+    ],
+    focusParagraphId: newParagraph.id,
+  };
+}
+
 export function fileNameToAlt(name: string) {
   return name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
 }

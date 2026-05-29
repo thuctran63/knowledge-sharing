@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Loader2, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getClipboardImageFiles } from "@/lib/image-upload";
@@ -11,15 +11,30 @@ import {
   removeImageBlock,
 } from "@/lib/markdown-blocks";
 
+export type FocusBlockRequest = { id: string; seq: number };
+
+function focusParagraphElement(id: string) {
+  const el = document.getElementById(`block-${id}`);
+  if (!(el instanceof HTMLTextAreaElement) || el.disabled) return false;
+
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  el.focus({ preventScroll: true });
+  const end = el.value.length;
+  el.setSelectionRange(end, end);
+  return true;
+}
+
 interface EditorBodyProps {
   blocks: EditorBlock[];
   onChange: (blocks: EditorBlock[]) => void;
   onPasteFiles: (files: File[], afterBlockId: string | null) => void;
-  onDropFiles: (files: File[]) => void;
+  onDropFiles: (files: File[], afterBlockId: string | null) => void;
   onRemoveImage: (blockId: string, url: string) => void;
   disabled?: boolean;
   isDragging: boolean;
   onDragStateChange: (dragging: boolean) => void;
+  focusBlockRequest?: FocusBlockRequest | null;
+  onFocusBlockHandled?: () => void;
 }
 
 export function EditorBody({
@@ -31,9 +46,46 @@ export function EditorBody({
   disabled,
   isDragging,
   onDragStateChange,
+  focusBlockRequest,
+  onFocusBlockHandled,
 }: EditorBodyProps) {
   const dragCounter = useRef(0);
   const focusBlockRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!focusBlockRequest) return;
+
+    let cancelled = false;
+    const { id } = focusBlockRequest;
+
+    const attemptFocus = () => {
+      if (cancelled) return false;
+      return focusParagraphElement(id);
+    };
+
+    const raf = requestAnimationFrame(() => {
+      if (attemptFocus()) {
+        onFocusBlockHandled?.();
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        if (attemptFocus()) {
+          onFocusBlockHandled?.();
+          return;
+        }
+
+        window.setTimeout(() => {
+          if (attemptFocus()) onFocusBlockHandled?.();
+        }, 50);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [focusBlockRequest, blocks, onFocusBlockHandled]);
 
   const updateParagraph = useCallback(
     (id: string, text: string) => {
@@ -130,13 +182,21 @@ export function EditorBody({
         dragCounter.current = 0;
         onDragStateChange(false);
         if (e.dataTransfer.files?.length) {
-          onDropFiles(Array.from(e.dataTransfer.files));
+          const anchor =
+            focusBlockRef.current ??
+            blocks.find((b) => b.type === "paragraph")?.id ??
+            null;
+          onDropFiles(Array.from(e.dataTransfer.files), anchor);
         }
       }}
     >
       <div className="space-y-1 p-4 sm:p-6">
         {blocks.map((block, index) => {
           if (block.type === "paragraph") {
+            const prevBlock = index > 0 ? blocks[index - 1] : null;
+            const afterImage =
+              prevBlock?.type === "image" && !block.text.trim();
+
             return (
               <textarea
                 key={block.id}
@@ -146,7 +206,9 @@ export function EditorBody({
                 placeholder={
                   isEmpty && index === 0
                     ? "Tell your story… Markdown works here (**bold**, # headings, lists, etc.)"
-                    : undefined
+                    : afterImage
+                      ? "Continue writing…"
+                      : undefined
                 }
                 onFocus={() => {
                   focusBlockRef.current = block.id;
@@ -156,7 +218,8 @@ export function EditorBody({
                 rows={Math.max(1, block.text.split("\n").length)}
                 className={cn(
                   "w-full resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 font-body",
-                  isEmpty && index === 0 && "min-h-[200px]"
+                  isEmpty && index === 0 && "min-h-[200px]",
+                  afterImage && "min-h-[44px]"
                 )}
               />
             );
