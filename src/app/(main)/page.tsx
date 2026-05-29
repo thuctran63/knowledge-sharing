@@ -4,21 +4,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { PostCard } from "@/components/post/post-card";
 import { TrendingItem } from "@/components/post/trending-item";
-import { Badge } from "@/components/ui/badge";
 import { ArrowRight, TrendingUp, Sparkles } from "lucide-react";
-
-async function getTags() {
-  try {
-    const tags = await prisma.tag.findMany({
-      include: { _count: { select: { posts: true } } },
-      orderBy: { posts: { _count: "desc" } },
-      take: 10,
-    });
-    return tags.map((t) => ({ id: t.id, name: t.name, count: t._count.posts }));
-  } catch {
-    return [];
-  }
-}
 
 async function getPosts() {
   try {
@@ -55,7 +41,7 @@ async function getPosts() {
 }
 
 export default async function HomePage() {
-  const [tags, { latest, trending }] = await Promise.all([getTags(), getPosts()]);
+  const { latest, trending } = await getPosts();
 
   return (
     <div className="container py-8 md:py-12">
@@ -91,24 +77,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {tags.length > 0 && (
-        <section className="mb-12 animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <Link key={tag.id} href={`/tag/${tag.name}`}>
-                <Badge
-                  variant="secondary"
-                  className="px-3 py-1.5 text-xs font-normal transition-all duration-200 hover:bg-primary/10 hover:text-primary cursor-pointer"
-                >
-                  {tag.name}
-                  <span className="ml-1.5 text-muted-foreground">({tag.count})</span>
-                </Badge>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         <div className="lg:col-span-2 space-y-8">
