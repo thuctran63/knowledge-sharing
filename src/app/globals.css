@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --font-heading: 'DM Serif Display', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    --background: 36 33% 97%;
+    --foreground: 36 10% 10%;
+    --card: 36 30% 98%;
+    --card-foreground: 36 10% 10%;
+    --popover: 36 30% 98%;
+    --popover-foreground: 36 10% 10%;
+    --primary: 22 55% 52%;
+    --primary-foreground: 36 33% 97%;
+    --secondary: 36 20% 92%;
+    --secondary-foreground: 36 10% 15%;
+    --muted: 36 15% 92%;
+    --muted-foreground: 36 10% 45%;
+    --accent: 22 55% 52%;
+    --accent-foreground: 36 33% 97%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 36 33% 97%;
+    --border: 36 15% 86%;
+    --input: 36 15% 86%;
+    --ring: 22 55% 52%;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 36 8% 8%;
+    --foreground: 36 15% 90%;
+    --card: 36 8% 11%;
+    --card-foreground: 36 15% 90%;
+    --popover: 36 8% 11%;
+    --popover-foreground: 36 15% 90%;
+    --primary: 22 55% 52%;
+    --primary-foreground: 36 33% 97%;
+    --secondary: 36 8% 16%;
+    --secondary-foreground: 36 15% 85%;
+    --muted: 36 8% 15%;
+    --muted-foreground: 36 8% 55%;
+    --accent: 22 55% 52%;
+    --accent-foreground: 36 33% 97%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 36 33% 97%;
+    --border: 36 8% 20%;
+    --input: 36 8% 20%;
+    --ring: 22 55% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer components {
+  .prose-custom {
+    @apply prose prose-lg max-w-none
+      prose-headings:font-heading prose-headings:tracking-tight
+      prose-h1:text-3xl prose-h1:font-semibold
+      prose-h2:text-2xl prose-h2:font-semibold prose-h2:mt-10
+      prose-h3:text-xl prose-h3:font-semibold
+      prose-p:leading-relaxed prose-p:text-[15px]
+      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+      prose-strong:font-semibold
+      prose-code:rounded prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono
+      prose-pre:rounded-xl prose-pre:bg-[#0f0f0f] prose-pre:border prose-pre:border-border/10
+      prose-img:rounded-xl
+      prose-blockquote:border-l-primary prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
+      prose-li:marker:text-primary/60
+      dark:prose-invert
+      dark:prose-pre:bg-[#1a1a1a]
+      dark:prose-blockquote:bg-muted/10;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
