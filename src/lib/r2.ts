@@ -5,6 +5,7 @@ const accountId = process.env.R2_ACCOUNT_ID || "";
 const accessKeyId = process.env.R2_ACCESS_KEY_ID || "";
 const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || "";
 const bucketName = process.env.R2_BUCKET_NAME || "knowledge-sharing";
+const publicUrlBase = process.env.R2_PUBLIC_URL || "";
 
 const S3 = new S3Client({
   region: "auto",
@@ -19,6 +20,13 @@ export type UploadResult = {
   url: string;
   key: string;
 };
+
+function makePublicUrl(key: string): string {
+  if (publicUrlBase) {
+    return `${publicUrlBase.replace(/\/$/, "")}/${key}`;
+  }
+  return `https://${bucketName}.${accountId}.r2.cloudflarestorage.com/${key}`;
+}
 
 export async function uploadFile(
   file: File,
@@ -37,9 +45,7 @@ export async function uploadFile(
     })
   );
 
-  const publicUrl = `https://${bucketName}.${accountId}.r2.cloudflarestorage.com/${key}`;
-
-  return { url: publicUrl, key };
+  return { url: makePublicUrl(key), key };
 }
 
 export async function deleteFile(key: string): Promise<void> {
@@ -51,7 +57,7 @@ export async function deleteFile(key: string): Promise<void> {
   );
 }
 
-export async function getSignedFileUrl(key: string, expiresIn = 3600): Promise<string> {
+export async function getSignedFileUrl(key: string, expiresIn = 86400): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: bucketName,
     Key: key,
@@ -61,5 +67,5 @@ export async function getSignedFileUrl(key: string, expiresIn = 3600): Promise<s
 }
 
 export function publicUrl(key: string): string {
-  return `https://${bucketName}.${accountId}.r2.cloudflarestorage.com/${key}`;
+  return makePublicUrl(key);
 }
