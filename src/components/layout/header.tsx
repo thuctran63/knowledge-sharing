@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { SearchBar } from "@/components/search/search-bar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   BookOpen,
   PenSquare,
@@ -29,8 +30,9 @@ import {
 import { cn } from "@/lib/utils";
 
 export function Header() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const authLoading = status === "loading";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
@@ -75,7 +77,13 @@ export function Header() {
 
           <ThemeToggle />
 
-          {session?.user ? (
+          {authLoading ? (
+            <div className="flex items-center gap-2">
+              <Skeleton className="hidden sm:block h-9 w-16 rounded-lg" />
+              <Skeleton className="hidden sm:block h-9 w-24 rounded-lg" />
+              <Skeleton className="h-9 w-9 rounded-full sm:hidden" />
+            </div>
+          ) : session?.user ? (
             <div className="flex items-center gap-1">
               <Link href="/post/new" className="hidden sm:block">
                 <Button variant="ghost" size="sm" className="gap-2">
@@ -199,7 +207,7 @@ export function Header() {
             <Hash className="h-4 w-4" strokeWidth={1.5} />
             Browse by tags
           </Link>
-          {session?.user && (
+          {authLoading ? null : session?.user ? (
             <>
               <div className="border-t border-border/40 my-2" />
               <Link
@@ -237,7 +245,7 @@ export function Header() {
                 Sign out
               </button>
             </>
-          )}
+          ) : null}
         </div>
       </div>
     </header>
