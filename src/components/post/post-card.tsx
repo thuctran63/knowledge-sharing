@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, MessageCircle, Bookmark, Clock } from "lucide-react";
+import { Heart, MessageCircle, Eye, Clock } from "lucide-react";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate, readingTime, timeAgo } from "@/lib/utils";
@@ -60,6 +60,10 @@ export function PostCard({ post, featured = false }: PostCardProps) {
 
             <div className="flex items-center gap-4 mt-4">
               <div className="flex items-center gap-3 text-muted-foreground">
+                <span className="flex items-center gap-1 text-xs">
+                  <Eye className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  {post.viewCount.toLocaleString()}
+                </span>
                 <span className="flex items-center gap-1 text-xs">
                   <Heart className="h-3.5 w-3.5" strokeWidth={1.5} />
                   {post._count.likes}
