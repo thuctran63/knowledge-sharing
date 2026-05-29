@@ -12,13 +12,13 @@ import { BookmarkButton } from "@/components/bookmark/bookmark-button";
 import { CommentList } from "@/components/comment/comment-list";
 import { formatDate, readingTime } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
+import { recordPostView } from "@/lib/post-views";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
-import { PostViewTracker } from "@/components/post/post-view-tracker";
-import { Clock, Heart, MessageCircle, Bookmark, PenLine } from "lucide-react";
+import { Clock, Eye, Heart, MessageCircle, Bookmark, PenLine } from "lucide-react";
 import "highlight.js/styles/github-dark.css";
 
 interface PostPageProps {
@@ -43,8 +43,11 @@ async function getPost(slug: string, userId?: string | null) {
     if (!post) return null;
     if (!post.published && post.authorId !== userId) return null;
 
+    const newViewCount = await recordPostView(post.id, post.published);
+
     return {
       ...post,
+      viewCount: newViewCount ?? post.viewCount,
       tags: post.tags.map((pt) => pt.tag),
       isLiked: post.likes ? (post.likes as unknown[]).length > 0 : false,
       isBookmarked: post.bookmarks ? (post.bookmarks as unknown[]).length > 0 : false,
@@ -179,11 +182,10 @@ export default async function PostDetailPage({ params }: PostPageProps) {
                 <Clock className="h-4 w-4" strokeWidth={1.5} />
                 {readingTime(post.content)} min read
               </span>
-              <PostViewTracker
-                postId={post.id}
-                published={post.published}
-                initialCount={post.viewCount}
-              />
+              <span className="flex items-center gap-1.5">
+                <Eye className="h-4 w-4" strokeWidth={1.5} />
+                {post.viewCount.toLocaleString()}
+              </span>
             </div>
           </div>
         </header>
