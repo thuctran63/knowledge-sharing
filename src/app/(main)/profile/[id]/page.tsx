@@ -3,10 +3,9 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { PostCard } from "@/components/post/post-card";
-import { Calendar, FileText, Heart } from "lucide-react";
+import { Calendar, FileText } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 interface ProfilePageProps {
@@ -68,12 +67,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col md:flex-row gap-8 mb-12 animate-fade-in">
           <div className="flex flex-col items-center md:items-start gap-4">
-            <Avatar className="h-24 w-24 ring-4 ring-border">
-              <AvatarImage src={user.image || ""} />
-              <AvatarFallback className="text-2xl">
-                {user.name?.charAt(0)?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
+            <AvatarUpload
+              userId={user.id}
+              image={user.image}
+              name={user.name}
+              size="large"
+            />
           </div>
 
           <div className="flex-1 text-center md:text-left">

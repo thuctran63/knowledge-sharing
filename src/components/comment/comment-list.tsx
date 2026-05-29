@@ -114,14 +114,14 @@ export function CommentList({ comments, postId }: CommentListProps) {
     const isOwner = session?.user?.id === comment.authorId;
 
     return (
-      <div
-        key={comment.id}
-        className={cn(
-          "animate-fade-in",
-          isReply && "ml-8 pl-4 border-l-2 border-border/50"
-        )}
-      >
-        <div className="flex gap-3 py-3">
+    <div
+      key={comment.id}
+      className={cn(
+        "animate-fade-in",
+        isReply && "ml-4 pl-2 sm:ml-8 sm:pl-4 border-l-2 border-border/50"
+      )}
+    >
+      <div className="flex gap-2 sm:gap-3 py-3">
           <Avatar className="h-8 w-8 shrink-0 ring-1 ring-border">
             <AvatarImage src={comment.author.image || ""} />
             <AvatarFallback className="text-xs">
@@ -165,15 +165,15 @@ export function CommentList({ comments, postId }: CommentListProps) {
               </p>
             )}
 
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-1 mt-2">
               {session && !editingId && (
                 <button
                   onClick={() =>
                     setReplyTo(replyTo === comment.id ? null : comment.id)
                   }
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                 >
-                  <Reply className="h-3 w-3" />
+                  <Reply className="h-3.5 w-3.5" />
                   Reply
                 </button>
               )}
@@ -184,16 +184,16 @@ export function CommentList({ comments, postId }: CommentListProps) {
                       setEditingId(comment.id);
                       setEditContent(comment.content);
                     }}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                   >
-                    <Edit3 className="h-3 w-3" />
+                    <Edit3 className="h-3.5 w-3.5" />
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(comment.id)}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-2 rounded-md text-xs text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-3.5 w-3.5" />
                     Delete
                   </button>
                 </>

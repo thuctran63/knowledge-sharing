@@ -20,7 +20,7 @@ export function PostCard({ post, featured = false }: PostCardProps) {
         featured && "md:col-span-2 md:grid md:grid-cols-2 md:gap-6"
       )}
     >
-      <Link href={`/post/${post.slug}`} className="block p-5">
+      <Link href={`/post/${post.slug}`} className="block p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div className={cn("flex-1 min-w-0", featured && "md:py-4")}>
             <div className="flex items-center gap-2.5 mb-3">

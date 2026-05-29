@@ -64,7 +64,7 @@ export default async function HomePage() {
             <Sparkles className="h-3.5 w-3.5" />
             A community for curious minds
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-semibold tracking-tight leading-[1.1] text-balance">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-semibold tracking-tight leading-[1.1] text-balance">
             Share ideas
             <br />
             <span className="text-primary">that matter.</span>
@@ -73,7 +73,7 @@ export default async function HomePage() {
             Discover insightful articles, connect with passionate writers, and
             share your knowledge with the world.
           </p>
-          <div className="flex gap-3 mt-8">
+          <div className="flex flex-wrap gap-3 mt-8">
             <Link
               href="/search"
               className="inline-flex h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:opacity-90 active:scale-[0.98]"

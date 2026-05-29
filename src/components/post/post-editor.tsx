@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   Loader2,
   X,
   Sparkles,
+  ImagePlus,
 } from "lucide-react";
 import { slugify, generateSlug } from "@/lib/utils";
 import type { Post } from "@prisma/client";
@@ -38,6 +39,49 @@ export function PostEditor({ post }: PostEditorProps) {
   );
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const form = new FormData();
+    form.append("file", file);
+    form.append("folder", "posts");
+
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      if (!res.ok) throw new Error("Upload failed");
+      const { url } = await res.json();
+
+      const markdown = `![${file.name}](${url})`;
+      const ta = contentRef.current;
+      if (ta) {
+        const start = ta.selectionStart;
+        const end = ta.selectionEnd;
+        const before = content.substring(0, start);
+        const after = content.substring(end);
+        setContent(`${before}${markdown}${after}`);
+        requestAnimationFrame(() => {
+          const pos = start + markdown.length;
+          ta.setSelectionRange(pos, pos);
+          ta.focus();
+        });
+      } else {
+        setContent((c) => c + `\n${markdown}\n`);
+      }
+
+      toast({ title: "Image uploaded", variant: "success" });
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const addTag = () => {
     const tag = tagInput.trim().toLowerCase();
@@ -139,7 +183,7 @@ export function PostEditor({ post }: PostEditorProps) {
           placeholder="Title..."
           value={title}
           onChange={handleTitleChange}
-          className="h-auto border-0 bg-transparent px-0 text-3xl font-heading font-semibold tracking-tight placeholder:text-muted-foreground/30 focus-visible:ring-0"
+          className="h-auto border-0 bg-transparent px-0 text-2xl sm:text-3xl font-heading font-semibold tracking-tight placeholder:text-muted-foreground/30 focus-visible:ring-0"
         />
       </div>
 
@@ -158,23 +202,47 @@ export function PostEditor({ post }: PostEditorProps) {
           <Label className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
             Content
           </Label>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setPreview(!preview)}
-            className="text-xs gap-1.5"
-          >
-            {preview ? (
-              <>
-                <EyeOff className="h-3.5 w-3.5" /> Edit
-              </>
-            ) : (
-              <>
-                <Eye className="h-3.5 w-3.5" /> Preview
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleUpload}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="text-xs gap-1.5"
+            >
+              {uploading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-3.5 w-3.5" />
+              )}
+              {uploading ? "Uploading..." : "Image"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setPreview(!preview)}
+              className="text-xs gap-1.5"
+            >
+              {preview ? (
+                <>
+                  <EyeOff className="h-3.5 w-3.5" /> Edit
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3.5 w-3.5" /> Preview
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {preview ? (
@@ -191,6 +259,7 @@ export function PostEditor({ post }: PostEditorProps) {
           </div>
         ) : (
           <Textarea
+            ref={contentRef}
             placeholder="Write your article content here... Supports Markdown!"
             value={content}
             onChange={(e) => setContent(e.target.value)}
