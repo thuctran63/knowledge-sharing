@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user/user-avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ import {
   Search,
   Home,
   Hash,
+  FilePen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -88,28 +89,23 @@ export function Header() {
                 </Button>
               </Link>
 
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <button className="relative min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full ring-offset-background transition-all duration-200 hover:ring-2 hover:ring-ring focus:outline-none focus:ring-2 focus:ring-ring">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={session.user.image || ""}
-                        alt={session.user.name || ""}
-                      />
-                      <AvatarFallback className="text-xs">
-                        {session.user.name?.charAt(0)?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
+                  <button className="relative flex h-9 w-9 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                    <UserAvatar
+                      src={session.user.image}
+                      name={session.user.name}
+                      size="sm"
+                    />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 sm:w-64">
                   <div className="flex items-center gap-3 px-2 py-1.5">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={session.user.image || ""} />
-                      <AvatarFallback className="text-xs">
-                        {session.user.name?.charAt(0)?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
+                    <UserAvatar
+                      src={session.user.image}
+                      name={session.user.name}
+                      size="sm"
+                    />
                     <div className="flex flex-col min-w-0">
                       <p className="text-sm font-medium leading-none truncate">
                         {session.user.name}
@@ -124,6 +120,12 @@ export function Header() {
                     <DropdownMenuItem className="cursor-pointer gap-2 min-h-[44px]">
                       <User className="h-4 w-4" />
                       Profile
+                    </DropdownMenuItem>
+                  </Link>
+                  <Link href="/drafts">
+                    <DropdownMenuItem className="cursor-pointer gap-2 min-h-[44px]">
+                      <FilePen className="h-4 w-4" />
+                      My articles
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
@@ -215,6 +217,14 @@ export function Header() {
               >
                 <User className="h-4 w-4" strokeWidth={1.5} />
                 Profile
+              </Link>
+              <Link
+                href="/drafts"
+                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <FilePen className="h-4 w-4" strokeWidth={1.5} />
+                My articles
               </Link>
               <button
                 onClick={() => {

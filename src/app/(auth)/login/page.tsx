@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BookOpen, Github } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useLoading } from "@/components/providers/loading-provider";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -16,29 +17,32 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { withLoading } = useLoading();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast({
-          title: "Invalid credentials",
-          description: "Please check your email and password.",
-          variant: "destructive",
+      await withLoading(async () => {
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
         });
-        return;
-      }
 
-      router.push("/");
-      router.refresh();
+        if (result?.error) {
+          toast({
+            title: "Invalid credentials",
+            description: "Please check your email and password.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        router.push("/");
+        router.refresh();
+      }, "Signing in…");
     } catch {
       toast({
         title: "An error occurred",

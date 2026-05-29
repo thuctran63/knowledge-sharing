@@ -96,9 +96,16 @@ export async function POST(req: Request) {
     const { title, slug, content, excerpt, published, tags } =
       await req.json();
 
-    if (!title || !content || !slug) {
+    if (!title?.trim() || !slug?.trim()) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Title and slug are required" },
+        { status: 400 }
+      );
+    }
+
+    if (content === undefined || content === null) {
+      return NextResponse.json(
+        { error: "Content is required" },
         { status: 400 }
       );
     }

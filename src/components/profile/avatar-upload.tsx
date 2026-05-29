@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user/user-avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { Camera, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,81 +29,163 @@ export function AvatarUpload({
   name,
   size = "large",
 }: AvatarUploadProps) {
+  const router = useRouter();
   const { data: session, update } = useSession();
   const { toast } = useToast();
+  const [currentImage, setCurrentImage] = useState(image);
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<File | null>(null);
+
   const isOwner = session?.user?.id === userId;
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    setCurrentImage(image);
+  }, [image]);
+
+  const displayImage = isOwner
+    ? (session?.user?.image ?? currentImage)
+    : currentImage;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    if (!file) return;
+    fileRef.current = file;
+    const url = URL.createObjectURL(file);
+    setPreview(url);
+    setOpen(true);
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const handleUpload = async () => {
+    const file = fileRef.current;
     if (!file) return;
 
     setUploading(true);
-    const form = new FormData();
-    form.append("avatar", file);
 
     try {
+      const form = new FormData();
+      form.append("avatar", file);
+
       const res = await fetch(`/api/users/${userId}`, {
         method: "PATCH",
         body: form,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(err.error);
+      }
 
       const data = await res.json();
+      setCurrentImage(data.image);
       await update({ image: data.image });
+      router.refresh();
       toast({ title: "Avatar updated", variant: "success" });
-    } catch {
-      toast({ title: "Upload failed", variant: "destructive" });
+      setOpen(false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      toast({ title: "Upload failed", description: msg, variant: "destructive" });
     } finally {
       setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (preview) URL.revokeObjectURL(preview);
+      setPreview(null);
+      fileRef.current = null;
     }
   };
 
-  const sizeClasses =
-    size === "large" ? "h-24 w-24" : "h-10 w-10";
-
   return (
-    <div className="relative inline-flex group">
-      <Avatar className={cn(sizeClasses, "ring-4 ring-border")}>
-        <AvatarImage src={image || ""} />
-        <AvatarFallback
-          className={cn(size === "large" && "text-2xl")}
-        >
-          {name?.charAt(0)?.toUpperCase() || "U"}
-        </AvatarFallback>
-      </Avatar>
+    <>
+      <div className="relative inline-flex group">
+        <UserAvatar
+          src={displayImage}
+          name={name}
+          size={size === "large" ? "lg" : "md"}
+        />
 
-      {isOwner && (
-        <>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            className="hidden"
-            onChange={handleUpload}
-          />
-          <button
-            type="button"
-            disabled={uploading}
-            onClick={() => inputRef.current?.click()}
-            className={cn(
-              "absolute inset-0 flex items-center justify-center rounded-full",
-              "bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
-              uploading && "opacity-100"
+        {isOwner && (
+          <>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => inputRef.current?.click()}
+              className={cn(
+                "absolute inset-0 flex items-center justify-center rounded-full",
+                "bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200",
+                uploading && "opacity-100"
+              )}
+              aria-label="Upload avatar"
+            >
+              {uploading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-white" />
+              ) : (
+                <Camera className="h-6 w-6 text-white" />
+              )}
+            </button>
+          </>
+        )}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Upload avatar</DialogTitle>
+            <DialogDescription>
+              Preview how your avatar will look
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center gap-4 py-4">
+            {preview && (
+              <UserAvatar src={preview} name={name} size="lg" className="h-32 w-32 shadow-md" />
             )}
-            aria-label="Upload avatar"
-          >
-            {uploading ? (
-              <Loader2 className="h-6 w-6 animate-spin text-white" />
-            ) : (
-              <Camera className="h-6 w-6 text-white" />
-            )}
-          </button>
-        </>
-      )}
-    </div>
+            <p className="text-xs text-muted-foreground text-center max-w-[240px]">
+              Image will be center-cropped to a square
+            </p>
+          </div>
+
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setOpen(false);
+                if (preview) URL.revokeObjectURL(preview);
+                setPreview(null);
+                fileRef.current = null;
+              }}
+              disabled={uploading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={handleUpload}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Uploading
+                </>
+              ) : (
+                "Upload"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

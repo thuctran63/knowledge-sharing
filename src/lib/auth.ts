@@ -16,6 +16,12 @@ declare module "next-auth" {
   }
 }
 
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
   session: {
@@ -79,15 +85,38 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.picture = user.image;
+        token.name = user.name;
+        token.email = user.email;
       }
+
+      if (trigger === "update" && session?.image) {
+        token.picture = session.image;
+      }
+
+      if (token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { image: true, name: true, email: true },
+        });
+        if (dbUser) {
+          token.picture = dbUser.image;
+          token.name = dbUser.name;
+          token.email = dbUser.email;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.image = (token.picture as string | null) ?? null;
+        session.user.name = token.name as string | null;
+        session.user.email = token.email as string | null;
       }
       return session;
     },

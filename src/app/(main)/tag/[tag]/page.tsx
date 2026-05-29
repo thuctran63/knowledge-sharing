@@ -7,7 +7,7 @@ import { PostCard } from "@/components/post/post-card";
 import { Hash } from "lucide-react";
 
 interface TagPageProps {
-  params: { tag: string };
+  params: Promise<{ tag: string }>;
 }
 
 async function getTagPosts(tagName: string) {
@@ -48,14 +48,16 @@ async function getTagPosts(tagName: string) {
 }
 
 export async function generateMetadata({ params }: TagPageProps) {
+  const { tag } = await params;
   return {
-    title: `#${params.tag} - Articles`,
-    description: `Browse articles tagged with #${params.tag}.`,
+    title: `#${tag} - Articles`,
+    description: `Browse articles tagged with #${tag}.`,
   };
 }
 
 export default async function TagPage({ params }: TagPageProps) {
-  const data = await getTagPosts(params.tag);
+  const { tag } = await params;
+  const data = await getTagPosts(tag);
   if (!data) notFound();
 
   return (

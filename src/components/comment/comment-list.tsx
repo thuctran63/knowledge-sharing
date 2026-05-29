@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { useLoading } from "@/components/providers/loading-provider";
 import { timeAgo, cn } from "@/lib/utils";
 import { MessageCircle, Edit3, Trash2, Reply, ChevronDown, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ interface CommentListProps {
 export function CommentList({ comments, postId }: CommentListProps) {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const { withLoading } = useLoading();
   const router = useRouter();
 
   const [newComment, setNewComment] = useState("");
@@ -40,26 +42,28 @@ export function CommentList({ comments, postId }: CommentListProps) {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/comments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: content.trim(),
-          postId,
-          parentId: parentId || null,
-        }),
-      });
+      await withLoading(async () => {
+        const res = await fetch("/api/comments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: content.trim(),
+            postId,
+            parentId: parentId || null,
+          }),
+        });
 
-      if (!res.ok) throw new Error("Failed to post comment");
+        if (!res.ok) throw new Error("Failed to post comment");
 
-      setNewComment("");
-      setReplyContent("");
-      setReplyTo(null);
-      toast({
-        title: "Comment posted",
-        variant: "success",
-      });
-      router.refresh();
+        setNewComment("");
+        setReplyContent("");
+        setReplyTo(null);
+        toast({
+          title: "Comment posted",
+          variant: "success",
+        });
+        router.refresh();
+      }, "Posting comment…");
     } catch {
       toast({
         title: "Error posting comment",
@@ -74,17 +78,19 @@ export function CommentList({ comments, postId }: CommentListProps) {
     if (!editContent.trim()) return;
 
     try {
-      const res = await fetch(`/api/comments`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: commentId, content: editContent.trim() }),
-      });
+      await withLoading(async () => {
+        const res = await fetch(`/api/comments`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: commentId, content: editContent.trim() }),
+        });
 
-      if (!res.ok) throw new Error("Failed to edit comment");
+        if (!res.ok) throw new Error("Failed to edit comment");
 
-      setEditingId(null);
-      toast({ title: "Comment updated", variant: "success" });
-      router.refresh();
+        setEditingId(null);
+        toast({ title: "Comment updated", variant: "success" });
+        router.refresh();
+      }, "Updating comment…");
     } catch {
       toast({ title: "Error updating comment", variant: "destructive" });
     }
@@ -94,16 +100,18 @@ export function CommentList({ comments, postId }: CommentListProps) {
     if (!confirm("Delete this comment?")) return;
 
     try {
-      const res = await fetch(`/api/comments`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: commentId }),
-      });
+      await withLoading(async () => {
+        const res = await fetch(`/api/comments`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: commentId }),
+        });
 
-      if (!res.ok) throw new Error("Failed to delete comment");
+        if (!res.ok) throw new Error("Failed to delete comment");
 
-      toast({ title: "Comment deleted", variant: "success" });
-      router.refresh();
+        toast({ title: "Comment deleted", variant: "success" });
+        router.refresh();
+      }, "Deleting comment…");
     } catch {
       toast({ title: "Error deleting comment", variant: "destructive" });
     }
@@ -122,12 +130,12 @@ export function CommentList({ comments, postId }: CommentListProps) {
       )}
     >
       <div className="flex gap-2 sm:gap-3 py-3">
-          <Avatar className="h-8 w-8 shrink-0 ring-1 ring-border">
-            <AvatarImage src={comment.author.image || ""} />
-            <AvatarFallback className="text-xs">
-              {comment.author.name?.charAt(0)?.toUpperCase() || "A"}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            src={comment.author.image}
+            name={comment.author.name}
+            size="sm"
+            className="shrink-0"
+          />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">

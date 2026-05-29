@@ -3,16 +3,29 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { PostCard } from "@/components/post/post-card";
-import { Calendar, FileText } from "lucide-react";
+import { DraftCard } from "@/components/post/draft-card";
+import { Button } from "@/components/ui/button";
+import { Calendar, FileText, FilePen } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
-interface ProfilePageProps {
-  params: { id: string };
+function isEmptyDraft(post: {
+  title: string;
+  content: string;
+  excerpt: string | null;
+}) {
+  const noTitle =
+    !post.title.trim() || post.title.toLowerCase() === "untitled";
+  return noTitle && !post.content.trim() && !post.excerpt?.trim();
 }
 
-async function getUserProfile(id: string) {
+interface ProfilePageProps {
+  params: Promise<{ id: string }>;
+}
+
+async function getUserProfile(id: string, viewerId?: string | null) {
   try {
     const user = await prisma.user.findUnique({
       where: { id },
@@ -21,7 +34,9 @@ async function getUserProfile(id: string) {
 
     if (!user) return null;
 
-    const [posts, totalPosts, totalLikes] = await Promise.all([
+    const isOwner = viewerId === id;
+
+    const [posts, totalPosts, totalLikes, drafts] = await Promise.all([
       prisma.post.findMany({
         where: { authorId: id, published: true },
         orderBy: { createdAt: "desc" },
@@ -35,12 +50,28 @@ async function getUserProfile(id: string) {
       }),
       prisma.post.count({ where: { authorId: id, published: true } }),
       prisma.like.count({ where: { post: { authorId: id } } }),
+      isOwner
+        ? prisma.post.findMany({
+            where: { authorId: id, published: false },
+            orderBy: { updatedAt: "desc" },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              content: true,
+              excerpt: true,
+              updatedAt: true,
+            },
+          })
+        : Promise.resolve([]),
     ]);
 
     return {
       user,
       posts: posts.map((p) => ({ ...p, tags: p.tags.map((pt) => pt.tag), isLiked: false, isBookmarked: false })),
+      drafts: drafts.filter((d) => !isEmptyDraft(d)),
       stats: { totalPosts, totalLikes },
+      isOwner,
     };
   } catch {
     return null;
@@ -48,7 +79,8 @@ async function getUserProfile(id: string) {
 }
 
 export async function generateMetadata({ params }: ProfilePageProps) {
-  const data = await getUserProfile(params.id);
+  const { id } = await params;
+  const data = await getUserProfile(id);
   if (!data) return { title: "User not found" };
   return {
     title: `${data.user.name} - Profile`,
@@ -57,10 +89,12 @@ export async function generateMetadata({ params }: ProfilePageProps) {
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
-  const data = await getUserProfile(params.id);
+  const { id } = await params;
+  const viewer = await getCurrentUser();
+  const data = await getUserProfile(id, viewer?.id);
   if (!data) notFound();
 
-  const { user, posts, stats } = data;
+  const { user, posts, drafts, stats, isOwner } = data;
 
   return (
     <div className="container py-8 md:py-12">
@@ -105,6 +139,28 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
         </div>
+
+        {isOwner && drafts.length > 0 && (
+          <section className="mb-12 animate-fade-in" style={{ animationDelay: "80ms" }}>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-2">
+                <FilePen className="h-5 w-5" strokeWidth={1.5} />
+                <h2 className="text-xl font-heading font-semibold tracking-tight">
+                  Unpublished
+                </h2>
+                <span className="text-sm text-muted-foreground">({drafts.length})</span>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/drafts">View all</Link>
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {drafts.slice(0, 3).map((draft) => (
+                <DraftCard key={draft.id} post={draft} />
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="animate-fade-in" style={{ animationDelay: "100ms" }}>
           <div className="flex items-center gap-2 mb-6">

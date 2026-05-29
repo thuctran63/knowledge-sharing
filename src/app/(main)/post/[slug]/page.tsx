@@ -3,8 +3,9 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user/user-avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { LikeButton } from "@/components/like/like-button";
 import { BookmarkButton } from "@/components/bookmark/bookmark-button";
@@ -15,11 +16,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
-import { Clock, Eye, Heart, MessageCircle, Bookmark } from "lucide-react";
+import { DeleteDraftButton } from "@/components/post/delete-draft-button";
+import { PostViewTracker } from "@/components/post/post-view-tracker";
+import { Clock, Heart, MessageCircle, Bookmark, PenLine } from "lucide-react";
 import "highlight.js/styles/github-dark.css";
 
 interface PostPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 async function getPost(slug: string, userId?: string | null) {
@@ -71,8 +74,9 @@ async function getComments(postId: string) {
 }
 
 export async function generateMetadata({ params }: PostPageProps) {
+  const { slug } = await params;
   const post = await prisma.post.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
     select: { title: true, excerpt: true },
   });
 
@@ -90,15 +94,43 @@ export async function generateMetadata({ params }: PostPageProps) {
 }
 
 export default async function PostDetailPage({ params }: PostPageProps) {
+  const { slug } = await params;
   const user = await getCurrentUser();
-  const post = await getPost(params.slug, user?.id);
+  const post = await getPost(slug, user?.id);
   const comments = await getComments(post?.id || "");
 
   if (!post) notFound();
 
+  const isAuthor = user?.id === post.authorId;
+
   return (
     <article className="container py-8 md:py-12">
       <div className="max-w-3xl mx-auto">
+        {!post.published && isAuthor && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">Unpublished</Badge>
+              <p className="text-sm text-muted-foreground">
+                Only you can see this — not published yet.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
+                <Link href={`/edit/${post.slug}`}>
+                  <PenLine className="h-3.5 w-3.5" />
+                  Continue editing
+                </Link>
+              </Button>
+              <DeleteDraftButton
+                postId={post.id}
+                postTitle={post.title}
+                redirectTo="/drafts"
+                variant="outline"
+              />
+            </div>
+          </div>
+        )}
+
         <header className="mb-10 animate-fade-in">
           {post.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-4">
@@ -127,12 +159,11 @@ export default async function PostDetailPage({ params }: PostPageProps) {
               href={`/profile/${post.author.id}`}
               className="flex items-center gap-3 group"
             >
-              <Avatar className="h-10 w-10 ring-2 ring-border">
-                <AvatarImage src={post.author.image || ""} />
-                <AvatarFallback>
-                  {post.author.name?.charAt(0)?.toUpperCase() || "A"}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                src={post.author.image}
+                name={post.author.name}
+                size="md"
+              />
               <div>
                 <p className="text-sm font-medium group-hover:text-primary transition-colors">
                   {post.author.name}
@@ -148,10 +179,11 @@ export default async function PostDetailPage({ params }: PostPageProps) {
                 <Clock className="h-4 w-4" strokeWidth={1.5} />
                 {readingTime(post.content)} min read
               </span>
-              <span className="flex items-center gap-1.5">
-                <Eye className="h-4 w-4" strokeWidth={1.5} />
-                {post.viewCount}
-              </span>
+              <PostViewTracker
+                postId={post.id}
+                published={post.published}
+                initialCount={post.viewCount}
+              />
             </div>
           </div>
         </header>

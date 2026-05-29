@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { PostCard } from "@/components/post/post-card";
+import { TrendingItem } from "@/components/post/trending-item";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, TrendingUp, Sparkles } from "lucide-react";
 
@@ -142,39 +143,29 @@ export default async function HomePage() {
           </section>
         </div>
 
-        <aside className="space-y-8">
-          <section className="animate-fade-in" style={{ animationDelay: "300ms" }}>
-            <div className="flex items-center gap-2 mb-6">
-              <TrendingUp className="h-5 w-5 text-primary" strokeWidth={1.5} />
-              <h2 className="text-xl font-heading font-semibold tracking-tight">
-                Trending
-              </h2>
+        <aside className="lg:sticky lg:top-24 lg:self-start">
+          <section
+            className="animate-fade-in rounded-xl border border-border/60 bg-card/50 p-5"
+            style={{ animationDelay: "300ms" }}
+          >
+            <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border/50">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" strokeWidth={2} />
+              </div>
+              <div>
+                <h2 className="text-lg font-heading font-semibold tracking-tight text-foreground">
+                  Trending
+                </h2>
+                <p className="text-xs text-foreground/60">Most read this week</p>
+              </div>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {trending.length > 0 ? (
                 trending.map((post, i) => (
-                  <Link
-                    key={post.id}
-                    href={`/post/${post.slug}`}
-                    className="block group"
-                  >
-                    <div className="flex gap-3 items-start p-3 rounded-lg transition-all duration-200 hover:bg-muted/50">
-                      <span className="text-2xl font-heading font-bold text-muted-foreground/20 min-w-[28px] leading-none">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-medium leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                          {post.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {post.author.name} · {post.viewCount} views
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
+                  <TrendingItem key={post.id} post={post} rank={i + 1} />
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
+                <p className="text-sm text-foreground/60 text-center py-8">
                   No trending articles yet.
                 </p>
               )}

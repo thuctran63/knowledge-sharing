@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  cleanupOrphanPostImages,
+  deletePostImages,
+} from "@/lib/r2";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         author: {
           select: {
@@ -46,16 +51,17 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!post) {
@@ -77,7 +83,7 @@ export async function PATCH(
     if (published !== undefined) updateData.published = published;
 
     if (tags !== undefined) {
-      await prisma.postTag.deleteMany({ where: { postId: params.id } });
+      await prisma.postTag.deleteMany({ where: { postId: id } });
       await prisma.postTag.createMany({
         data: await Promise.all(
           tags.map(async (name: string) => {
@@ -86,14 +92,14 @@ export async function PATCH(
               update: {},
               create: { name },
             });
-            return { postId: params.id, tagId: tag.id };
+            return { postId: id, tagId: tag.id };
           })
         ),
       });
     }
 
     const updated = await prisma.post.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         author: {
@@ -110,6 +116,10 @@ export async function PATCH(
       },
     });
 
+    if (content !== undefined && content !== post.content) {
+      await cleanupOrphanPostImages(id, content, post.content);
+    }
+
     return NextResponse.json({
       ...updated,
       tags: updated.tags.map((pt) => pt.tag),
@@ -125,16 +135,17 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const post = await prisma.post.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!post) {
@@ -145,7 +156,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prisma.post.delete({ where: { id: params.id } });
+    await prisma.post.delete({ where: { id } });
+
+    try {
+      await deletePostImages(id);
+    } catch (deleteError) {
+      console.error("[POST_DELETE] Failed to delete R2 images:", deleteError);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

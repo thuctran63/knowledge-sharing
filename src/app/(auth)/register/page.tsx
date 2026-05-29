@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BookOpen } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useLoading } from "@/components/providers/loading-provider";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -16,6 +17,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { withLoading } = useLoading();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,30 +34,32 @@ export default function RegisterPage() {
     }
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast({
-          title: "Registration failed",
-          description: data.error || "Something went wrong.",
-          variant: "destructive",
+      await withLoading(async () => {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
         });
-        return;
-      }
 
-      toast({
-        title: "Account created!",
-        description: "You can now sign in.",
-        variant: "success",
-      });
+        const data = await res.json();
 
-      router.push("/login");
+        if (!res.ok) {
+          toast({
+            title: "Registration failed",
+            description: data.error || "Something went wrong.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        toast({
+          title: "Account created!",
+          description: "You can now sign in.",
+          variant: "success",
+        });
+
+        router.push("/login");
+      }, "Creating account…");
     } catch {
       toast({
         title: "An error occurred",

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Heart, MessageCircle, Bookmark, Clock } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate, readingTime, timeAgo } from "@/lib/utils";
 import type { PostCardData } from "@/types";
@@ -24,12 +24,11 @@ export function PostCard({ post, featured = false }: PostCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className={cn("flex-1 min-w-0", featured && "md:py-4")}>
             <div className="flex items-center gap-2.5 mb-3">
-              <Avatar className="h-6 w-6 ring-1 ring-border">
-                <AvatarImage src={post.author.image || ""} />
-                <AvatarFallback className="text-[10px]">
-                  {post.author.name?.charAt(0)?.toUpperCase() || "A"}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                src={post.author.image}
+                name={post.author.name}
+                size="xs"
+              />
               <span className="text-xs text-muted-foreground">
                 {post.author.name}
               </span>
