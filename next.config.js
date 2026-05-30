@@ -25,6 +25,7 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ["@aws-sdk/client-s3", "sharp"],
+  compress: true,
 };
 
 module.exports = nextConfig;
