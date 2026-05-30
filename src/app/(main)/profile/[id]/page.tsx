@@ -8,6 +8,7 @@ import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { PostCard } from "@/components/post/post-card";
 import { DraftCard } from "@/components/post/draft-card";
 import { FollowButton } from "@/components/user/follow-button";
+import { ProfileSignOut } from "@/components/profile/profile-sign-out";
 import { Button } from "@/components/ui/button";
 import { Calendar, FileText, FilePen } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -158,13 +159,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
             </div>
 
-            {!isOwner && (
+            {!isOwner ? (
               <div className="mt-6 flex justify-center md:justify-start">
                 <FollowButton
                   userId={user.id}
                   initialFollowing={isFollowing}
                   initialFollowerCount={stats.followerCount}
                 />
+              </div>
+            ) : (
+              <div className="flex justify-center md:justify-start">
+                <ProfileSignOut />
               </div>
             )}
           </div>

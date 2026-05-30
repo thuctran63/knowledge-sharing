@@ -106,7 +106,10 @@ export function TagsContent() {
     const timer = setTimeout(() => {
       void searchTags(query);
       const trimmed = query.trim();
-      const url = trimmed ? `/tags?q=${encodeURIComponent(trimmed)}` : "/tags";
+      const base = "/search?tab=tags";
+      const url = trimmed
+        ? `${base}&q=${encodeURIComponent(trimmed)}`
+        : base;
       window.history.replaceState(null, "", url);
     }, 300);
 

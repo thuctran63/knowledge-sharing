@@ -1,16 +1,16 @@
 import { Suspense } from "react";
-import { SearchContent } from "./search-content";
+import { ExploreContent } from "./explore-content";
 
 export default function SearchPage() {
   return (
     <div className="container py-8 md:py-12">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-heading font-semibold tracking-tight">
-            Search articles
+            Explore
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Find articles by title, author, or tags.
+            Search articles or browse by tags.
           </p>
         </div>
         <Suspense
@@ -20,7 +20,7 @@ export default function SearchPage() {
             </div>
           }
         >
-          <SearchContent />
+          <ExploreContent />
         </Suspense>
       </div>
     </div>

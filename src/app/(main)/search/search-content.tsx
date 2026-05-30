@@ -187,7 +187,10 @@ export function SearchContent() {
             </h3>
             <p className="text-sm text-muted-foreground max-w-sm">
               Try adjusting your search terms or{" "}
-              <Link href="/tags" className="text-primary hover:underline">
+              <Link
+                href="/search?tab=tags"
+                className="text-primary hover:underline"
+              >
                 browse tags
               </Link>
               .
