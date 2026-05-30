@@ -3,7 +3,6 @@
 import { useState, useRef } from "react";
 import { Heart } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -22,7 +21,6 @@ export function LikeButton({
   const [likeCount, setLikeCount] = useState(initialLikes);
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
-  const router = useRouter();
   const { toast } = useToast();
   const pendingRef = useRef(false);
 
@@ -62,7 +60,6 @@ export function LikeButton({
     } finally {
       setLoading(false);
       pendingRef.current = false;
-      router.refresh();
     }
   };
 

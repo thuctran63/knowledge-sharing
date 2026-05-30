@@ -3,23 +3,23 @@
 import { useState, useRef } from "react";
 import { Bookmark } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
 interface BookmarkButtonProps {
   postId: string;
   initialBookmarked: boolean;
+  onChange?: (bookmarked: boolean) => void;
 }
 
 export function BookmarkButton({
   postId,
   initialBookmarked,
+  onChange,
 }: BookmarkButtonProps) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
-  const router = useRouter();
   const { toast } = useToast();
   const pendingRef = useRef(false);
 
@@ -37,7 +37,8 @@ export function BookmarkButton({
 
     setLoading(true);
     const prev = bookmarked;
-    setBookmarked(!bookmarked);
+    const next = !bookmarked;
+    setBookmarked(next);
 
     try {
       const res = await fetch("/api/bookmarks", {
@@ -48,13 +49,14 @@ export function BookmarkButton({
 
       if (!res.ok) {
         setBookmarked(prev);
+      } else {
+        onChange?.(next);
       }
     } catch {
       setBookmarked(prev);
     } finally {
       setLoading(false);
       pendingRef.current = false;
-      router.refresh();
     }
   };
 

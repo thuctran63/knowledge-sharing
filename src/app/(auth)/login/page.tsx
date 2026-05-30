@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,9 +15,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [callbackUrl, setCallbackUrl] = useState("/");
   const router = useRouter();
   const { toast } = useToast();
   const { withLoading } = useLoading();
+
+  useEffect(() => {
+    const url = new URLSearchParams(window.location.search).get("callbackUrl");
+    if (url?.startsWith("/")) setCallbackUrl(url);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +46,7 @@ export default function LoginPage() {
           return;
         }
 
-        router.push("/");
+        router.push(callbackUrl.startsWith("/") ? callbackUrl : "/");
         router.refresh();
       }, "Signing in…");
     } catch {
@@ -71,7 +77,7 @@ export default function LoginPage() {
         </div>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/" })}
+          onClick={() => signIn("google", { callbackUrl })}
           className="w-full inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium transition-all duration-200 hover:bg-muted/50 active:scale-[0.98]"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">

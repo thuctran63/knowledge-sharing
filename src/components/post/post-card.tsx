@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, MessageCircle, Eye, Clock } from "lucide-react";
+import { Heart, MessageCircle, Eye, Clock, Bookmark } from "lucide-react";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate, readingTime, timeAgo } from "@/lib/utils";
@@ -66,7 +66,13 @@ export const PostCard = memo(function PostCard({ post, featured = false }: PostC
                   {post.viewCount.toLocaleString()}
                 </span>
                 <span className="flex items-center gap-1 text-xs">
-                  <Heart className="h-3.5 w-3.5" strokeWidth={1.5} />
+                  <Heart
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      post.isLiked && "fill-red-500 text-red-500"
+                    )}
+                    strokeWidth={1.5}
+                  />
                   {post._count.likes}
                 </span>
                 <span className="flex items-center gap-1 text-xs">
@@ -75,6 +81,13 @@ export const PostCard = memo(function PostCard({ post, featured = false }: PostC
                 </span>
               </div>
               <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
+                {post.isBookmarked && (
+                  <Bookmark
+                    className="h-3 w-3 fill-primary text-primary"
+                    strokeWidth={1.5}
+                    aria-label="Saved"
+                  />
+                )}
                 <Clock className="h-3 w-3" strokeWidth={1.5} />
                 {readingTime(post.content)} min read
               </span>

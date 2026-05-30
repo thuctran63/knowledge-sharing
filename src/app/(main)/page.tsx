@@ -2,46 +2,49 @@ export const revalidate = 60;
 
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { PostCard } from "@/components/post/post-card";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  formatPostListItem,
+  postListInclude,
+  POSTS_PAGE_SIZE,
+} from "@/lib/post-queries";
+import { PostFeed } from "@/components/post/post-feed";
 import { TrendingItem } from "@/components/post/trending-item";
 import { ArrowRight, TrendingUp, Sparkles } from "lucide-react";
 
-async function getPosts() {
+async function getPosts(userId?: string | null) {
   try {
-    const [latest, trending] = await Promise.all([
+    const include = postListInclude(userId);
+
+    const [latestRows, latestTotal, trendingRows] = await Promise.all([
       prisma.post.findMany({
         where: { published: true },
         orderBy: { createdAt: "desc" },
-        take: 10,
-        include: {
-          author: { select: { id: true, name: true, email: true, image: true, bio: true, createdAt: true } },
-          tags: { include: { tag: true } },
-          _count: { select: { comments: true, likes: true, bookmarks: true } },
-        },
+        take: POSTS_PAGE_SIZE,
+        include,
       }),
+      prisma.post.count({ where: { published: true } }),
       prisma.post.findMany({
         where: { published: true },
         orderBy: { viewCount: "desc" },
         take: 5,
-        include: {
-          author: { select: { id: true, name: true, email: true, image: true, bio: true, createdAt: true } },
-          tags: { include: { tag: true } },
-          _count: { select: { comments: true, likes: true, bookmarks: true } },
-        },
+        include,
       }),
     ]);
 
     return {
-      latest: latest.map((p) => ({ ...p, tags: p.tags.map((pt) => pt.tag), isLiked: false, isBookmarked: false })),
-      trending: trending.map((p) => ({ ...p, tags: p.tags.map((pt) => pt.tag), isLiked: false, isBookmarked: false })),
+      latest: latestRows.map(formatPostListItem),
+      latestTotalPages: Math.max(1, Math.ceil(latestTotal / POSTS_PAGE_SIZE)),
+      trending: trendingRows.map(formatPostListItem),
     };
   } catch {
-    return { latest: [], trending: [] };
+    return { latest: [], latestTotalPages: 1, trending: [] };
   }
 }
 
 export default async function HomePage() {
-  const { latest, trending } = await getPosts();
+  const user = await getCurrentUser();
+  const { latest, latestTotalPages, trending } = await getPosts(user?.id);
 
   return (
     <div className="container py-8 md:py-12">
@@ -92,22 +95,25 @@ export default async function HomePage() {
                 View all
               </Link>
             </div>
-            <div className="space-y-4">
-              {latest.length > 0 ? (
-                latest.map((post, i) => (
-                  <div key={post.id} style={{ animationDelay: `${300 + i * 80}ms` }} className="animate-fade-in">
-                    <PostCard post={post} />
-                  </div>
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-dashed border-border">
-                  <p className="text-muted-foreground">No articles published yet.</p>
-                  <Link href="/post/new" className="text-sm text-primary hover:underline mt-2">
-                    Be the first to write
-                  </Link>
-                </div>
-              )}
-            </div>
+            {latest.length > 0 ? (
+              <PostFeed
+                initialPosts={latest}
+                initialPage={1}
+                initialTotalPages={latestTotalPages}
+                userId={user?.id ?? null}
+                emptyMessage="No articles published yet."
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-dashed border-border">
+                <p className="text-muted-foreground">No articles published yet.</p>
+                <Link
+                  href="/post/new"
+                  className="text-sm text-primary hover:underline mt-2"
+                >
+                  Be the first to write
+                </Link>
+              </div>
+            )}
           </section>
         </div>
 

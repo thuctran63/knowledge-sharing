@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { PostCard } from "@/components/post/post-card";
+import { useSession } from "next-auth/react";
+import { PostFeed } from "@/components/post/post-feed";
 import { Input } from "@/components/ui/input";
 import { Hash, Loader2, Search, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ type TagItem = { id: string; name: string; count: number };
 
 export function TagsContent() {
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const initialQuery = searchParams.get("q") || "";
 
   const [query, setQuery] = useState(initialQuery);
@@ -20,6 +22,7 @@ export function TagsContent() {
   const [searchResults, setSearchResults] = useState<TagItem[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [posts, setPosts] = useState<PostCardData[]>([]);
+  const [postsTotalPages, setPostsTotalPages] = useState(1);
   const [loadingTop, setLoadingTop] = useState(true);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -62,21 +65,32 @@ export function TagsContent() {
     }
   }, []);
 
-  const fetchPostsForTag = useCallback(async (tagName: string) => {
-    setLoadingPosts(true);
-    try {
-      const res = await fetch(
-        `/api/posts?tag=${encodeURIComponent(tagName)}&limit=10`
-      );
-      if (!res.ok) throw new Error("Failed to load posts");
-      const data = await res.json();
-      setPosts(data.data || []);
-    } catch {
-      setPosts([]);
-    } finally {
-      setLoadingPosts(false);
-    }
-  }, []);
+  const fetchPostsForTag = useCallback(
+    async (tagName: string) => {
+      setLoadingPosts(true);
+      try {
+        const params = new URLSearchParams({
+          tag: tagName,
+          limit: "10",
+          page: "1",
+        });
+        if (session?.user?.id) {
+          params.set("userId", session.user.id);
+        }
+        const res = await fetch(`/api/posts?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to load posts");
+        const data = await res.json();
+        setPosts(data.data || []);
+        setPostsTotalPages(data.totalPages ?? 1);
+      } catch {
+        setPosts([]);
+        setPostsTotalPages(1);
+      } finally {
+        setLoadingPosts(false);
+      }
+    },
+    [session?.user?.id]
+  );
 
   useEffect(() => {
     void fetchTopTags();
@@ -236,17 +250,15 @@ export function TagsContent() {
                   No published articles for this tag yet.
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {posts.map((post, i) => (
-                    <div
-                      key={post.id}
-                      className="animate-fade-in"
-                      style={{ animationDelay: `${i * 50}ms` }}
-                    >
-                      <PostCard post={post} />
-                    </div>
-                  ))}
-                </div>
+                <PostFeed
+                  key={selectedTag}
+                  initialPosts={posts}
+                  initialPage={1}
+                  initialTotalPages={postsTotalPages}
+                  tag={selectedTag}
+                  userId={session?.user?.id ?? null}
+                  emptyMessage="No published articles for this tag yet."
+                />
               )}
             </>
           ) : (

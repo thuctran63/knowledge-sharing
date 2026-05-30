@@ -25,6 +25,7 @@ import {
   Search,
   Home,
   Hash,
+  Bookmark,
   FilePen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -142,6 +143,12 @@ export function Header() {
                       My articles
                     </DropdownMenuItem>
                   </Link>
+                  <Link href="/saved">
+                    <DropdownMenuItem className="cursor-pointer gap-2 min-h-[44px]">
+                      <Bookmark className="h-4 w-4" />
+                      Saved
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="cursor-pointer gap-2 text-destructive focus:text-destructive min-h-[44px]"
@@ -234,6 +241,14 @@ export function Header() {
               >
                 <FilePen className="h-4 w-4" strokeWidth={1.5} />
                 My articles
+              </Link>
+              <Link
+                href="/saved"
+                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <Bookmark className="h-4 w-4" strokeWidth={1.5} />
+                Saved articles
               </Link>
               <Link
                 href={`/profile/${session.user.id}`}

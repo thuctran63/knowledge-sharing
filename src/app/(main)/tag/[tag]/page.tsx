@@ -1,16 +1,21 @@
 export const revalidate = 300;
 
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { PostCard } from "@/components/post/post-card";
+import { getCurrentUser } from "@/lib/auth";
+import {
+  formatPostListItem,
+  postListInclude,
+  POSTS_PAGE_SIZE,
+} from "@/lib/post-queries";
+import { PostFeed } from "@/components/post/post-feed";
 import { Hash } from "lucide-react";
 
 interface TagPageProps {
   params: Promise<{ tag: string }>;
 }
 
-async function getTagPosts(tagName: string) {
+async function getTagPosts(tagName: string, userId?: string | null) {
   try {
     const tag = await prisma.tag.findUnique({
       where: { name: tagName },
@@ -18,29 +23,26 @@ async function getTagPosts(tagName: string) {
 
     if (!tag) return null;
 
-    const posts = await prisma.post.findMany({
-      where: {
-        published: true,
-        tags: { some: { tagId: tag.id } },
-      },
-      orderBy: { createdAt: "desc" },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true, image: true, bio: true, createdAt: true },
-        },
-        tags: { include: { tag: true } },
-        _count: { select: { comments: true, likes: true, bookmarks: true } },
-      },
-    });
+    const where = {
+      published: true,
+      tags: { some: { tagId: tag.id } },
+    };
 
-    const totalPosts = await prisma.postTag.count({
-      where: { tagId: tag.id },
-    });
+    const [postsRows, totalPosts] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: POSTS_PAGE_SIZE,
+        include: postListInclude(userId),
+      }),
+      prisma.post.count({ where }),
+    ]);
 
     return {
       tag: tag.name,
       totalPosts,
-      posts: posts.map((p) => ({ ...p, tags: p.tags.map((pt) => pt.tag), isLiked: false, isBookmarked: false })),
+      posts: postsRows.map(formatPostListItem),
+      totalPages: Math.max(1, Math.ceil(totalPosts / POSTS_PAGE_SIZE)),
     };
   } catch {
     return null;
@@ -62,7 +64,8 @@ export async function generateMetadata({ params }: TagPageProps) {
 
 export default async function TagPage({ params }: TagPageProps) {
   const { tag } = await params;
-  const data = await getTagPosts(tag);
+  const user = await getCurrentUser();
+  const data = await getTagPosts(tag, user?.id);
   if (!data) notFound();
 
   return (
@@ -76,17 +79,19 @@ export default async function TagPage({ params }: TagPageProps) {
             </h1>
           </div>
           <p className="text-muted-foreground">
-            {data.totalPosts} article{data.totalPosts !== 1 ? "s" : ""} tagged with <strong>#{data.tag}</strong>
+            {data.totalPosts} article{data.totalPosts !== 1 ? "s" : ""} tagged
+            with <strong>#{data.tag}</strong>
           </p>
         </div>
 
-        <div className="space-y-4">
-          {data.posts.map((post, i) => (
-            <div key={post.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
-              <PostCard post={post} />
-            </div>
-          ))}
-        </div>
+        <PostFeed
+          initialPosts={data.posts}
+          initialPage={1}
+          initialTotalPages={data.totalPages}
+          tag={data.tag}
+          userId={user?.id ?? null}
+          emptyMessage="No published articles for this tag yet."
+        />
       </div>
     </div>
   );
