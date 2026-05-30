@@ -55,15 +55,18 @@ import type { Post } from "@prisma/client";
 
 const MarkdownPreview = dynamic(
   () => import("@/components/post/markdown-preview").then((m) => m.MarkdownPreview),
-  { loading: () => <div className="min-h-[420px] animate-pulse rounded-xl bg-muted" /> }
+  { loading: () => <div className="min-h-[min(60vh,560px)] animate-pulse rounded-2xl bg-muted" /> }
 );
 
 const EditorBody = dynamic(
   () => import("@/components/post/editor-body").then((m) => m.EditorBody),
-  { loading: () => <div className="min-h-[420px] animate-pulse rounded-xl bg-muted" /> }
+  { loading: () => <div className="min-h-[min(60vh,560px)] animate-pulse rounded-2xl bg-muted" /> }
 );
 
 type EditorView = "story" | "preview";
+
+const editorShellClass =
+  "container mx-auto w-full max-w-4xl xl:max-w-5xl px-4 sm:px-6 lg:px-8";
 
 interface PostEditorProps {
   post?: Post & { tags: { id: string; name: string }[] };
@@ -611,7 +614,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
     <>
       <div className="min-h-[calc(100vh-4rem)]">
         <div className="sticky top-16 z-30 border-b border-border/50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-          <div className="container max-w-3xl mx-auto px-4 h-12 flex items-center">
+          <div className={cn(editorShellClass, "h-12 flex items-center")}>
             <EditorToolbar
               variant={variant}
               syncState={syncState}
@@ -622,14 +625,14 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           </div>
         </div>
 
-        <div className="container max-w-3xl mx-auto px-4 py-8 md:py-10 space-y-6">
+        <div className={cn(editorShellClass, "py-8 md:py-12 space-y-7 md:space-y-8")}>
         <Input
           type="text"
           placeholder="Title"
           value={title}
           maxLength={200}
           onChange={(e) => setTitle(e.target.value)}
-          className="h-auto border-0 bg-transparent px-0 text-2xl sm:text-3xl font-heading font-semibold tracking-tight placeholder:text-muted-foreground/30 focus-visible:ring-0"
+          className="h-auto border-0 bg-transparent px-0 text-3xl sm:text-4xl font-heading font-semibold tracking-tight placeholder:text-muted-foreground/30 focus-visible:ring-0"
         />
 
         <Textarea
@@ -637,7 +640,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           value={excerpt}
           maxLength={300}
           onChange={(e) => setExcerpt(e.target.value)}
-          className="resize-none border-0 bg-transparent px-0 text-sm text-muted-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0"
+          className="resize-none border-0 bg-transparent px-0 text-base sm:text-lg text-muted-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0"
           rows={2}
         />
 
@@ -745,7 +748,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           )}
 
           {editorView === "preview" && (
-            <div className="min-h-[420px] rounded-xl border border-border bg-card p-6 prose-custom">
+            <div className="min-h-[min(60vh,560px)] rounded-2xl border border-border/80 bg-card p-6 sm:p-8 lg:p-10 shadow-sm prose-custom max-w-none">
               <MarkdownPreview content={content} />
             </div>
           )}

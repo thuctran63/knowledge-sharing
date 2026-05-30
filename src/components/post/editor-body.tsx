@@ -168,7 +168,7 @@ export function EditorBody({
 
   return (
     <div
-      className="relative min-h-[420px] rounded-xl border border-border bg-card"
+      className="relative min-h-[min(60vh,560px)] rounded-2xl border border-border/80 bg-card shadow-sm"
       data-editor-body
       onPasteCapture={handlePaste}
       onDragEnter={handleDragEnter}
@@ -190,7 +190,7 @@ export function EditorBody({
         }
       }}
     >
-      <div className="space-y-1 p-4 sm:p-6">
+      <div className="space-y-2 p-6 sm:p-8 lg:p-10">
         {blocks.map((block, index) => {
           if (block.type === "paragraph") {
             const prevBlock = index > 0 ? blocks[index - 1] : null;
@@ -217,8 +217,8 @@ export function EditorBody({
                 onKeyDown={(e) => handleParagraphKeyDown(e, block, index)}
                 rows={Math.max(1, block.text.split("\n").length)}
                 className={cn(
-                  "w-full resize-none border-0 bg-transparent p-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 font-body",
-                  isEmpty && index === 0 && "min-h-[200px]",
+                  "w-full resize-none border-0 bg-transparent p-0 text-[17px] sm:text-lg leading-[1.75] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 font-body",
+                  isEmpty && index === 0 && "min-h-[min(40vh,320px)]",
                   afterImage && "min-h-[44px]"
                 )}
               />
@@ -239,7 +239,7 @@ export function EditorBody({
                   alt={block.alt || "Article image"}
                   loading="lazy"
                   className={cn(
-                    "w-full max-h-[480px] object-contain bg-muted/30",
+                    "w-full max-h-[min(70vh,640px)] object-contain bg-muted/30",
                     block.status === "uploading" && "opacity-70"
                   )}
                 />
