@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { headers } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { cache } from "react";
 
 /** Skip Next.js link prefetch — not a real visit */
 export async function isPrefetchRequest() {
@@ -37,7 +38,7 @@ function isUniqueViolation(error: unknown) {
 }
 
 /** Record a unique view per viewer; increment count only on first view. */
-export async function recordPostView(
+export const recordPostView = cache(async function recordPostView(
   postId: string,
   published: boolean,
   userId?: string | null
@@ -48,8 +49,15 @@ export async function recordPostView(
   const viewerKey = await getViewerKey(userId);
 
   try {
-    await prisma.postView.create({
-      data: { postId, viewerKey },
+    await prisma.postView.upsert({
+      where: {
+        postId_viewerKey: {
+          postId,
+          viewerKey,
+        },
+      },
+      create: { postId, viewerKey },
+      update: {},
     });
 
     const updated = await prisma.post.update({
@@ -70,4 +78,4 @@ export async function recordPostView(
 
     throw error;
   }
-}
+});

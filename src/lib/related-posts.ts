@@ -31,6 +31,8 @@ async function fetchRelatedPosts(
       tags: { some: { tagId: { in: tagIds } } },
     },
     include,
+    take: 20,
+    orderBy: { createdAt: "desc" },
   });
 
   const tagIdSet = new Set(tagIds);

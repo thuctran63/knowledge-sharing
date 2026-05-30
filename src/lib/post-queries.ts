@@ -121,10 +121,8 @@ export async function getPostForPage(
       ...post,
       viewCount: newViewCount ?? post.viewCount,
       tags: post.tags.map((pt) => pt.tag),
-      isLiked: post.likes ? (post.likes as unknown[]).length > 0 : false,
-      isBookmarked: post.bookmarks
-        ? (post.bookmarks as unknown[]).length > 0
-        : false,
+      isLiked: Array.isArray(post.likes) ? post.likes.length > 0 : false,
+      isBookmarked: Array.isArray(post.bookmarks) ? post.bookmarks.length > 0 : false,
       isFollowingAuthor,
       authorFollowerCount,
       likes: undefined,

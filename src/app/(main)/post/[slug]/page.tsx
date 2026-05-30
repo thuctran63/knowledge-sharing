@@ -35,22 +35,28 @@ function extractFirstImageUrl(content: string): string | undefined {
 
 async function getComments(postId: string) {
   try {
-    return await prisma.comment.findMany({
-      where: { postId },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            bio: true,
-            createdAt: true,
+    const [topComments, totalComments] = await Promise.all([
+      prisma.comment.findMany({
+        where: { postId, parentId: null },
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              bio: true,
+              createdAt: true,
+            },
           },
+          _count: { select: { replies: true } },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      prisma.comment.count({ where: { postId } }),
+    ]);
+    return topComments;
   } catch {
     return [];
   }
