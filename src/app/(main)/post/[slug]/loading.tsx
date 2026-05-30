@@ -2,8 +2,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PostLoading() {
   return (
-    <div className="container py-8 md:py-12">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="container max-w-7xl py-8 md:py-12">
+      <div className="mx-auto w-full space-y-6">
         <div className="flex flex-wrap gap-2">
           <Skeleton className="h-6 w-16 rounded-full" />
           <Skeleton className="h-6 w-20 rounded-full" />

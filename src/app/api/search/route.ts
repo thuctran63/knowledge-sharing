@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
+import { formatPostListItem, postListInclude } from "@/lib/post-queries";
 
 export async function GET(req: Request) {
   try {
@@ -7,6 +9,8 @@ export async function GET(req: Request) {
     const q = searchParams.get("q") || "";
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
+    const sort = searchParams.get("sort") || "latest";
+    const tag = searchParams.get("tag")?.trim() || "";
 
     if (!q.trim()) {
       return NextResponse.json({
@@ -17,10 +21,11 @@ export async function GET(req: Request) {
       });
     }
 
+    const user = await getCurrentUser();
     const query = q.trim();
     const skip = (page - 1) * limit;
 
-    const where = {
+    const where: Record<string, unknown> = {
       published: true,
       OR: [
         { title: { contains: query, mode: "insensitive" as const } },
@@ -37,48 +42,57 @@ export async function GET(req: Request) {
       ],
     };
 
+    if (tag) {
+      where.tags = {
+        some: { tag: { name: tag } },
+      };
+    }
+
+    const orderBy =
+      sort === "trending"
+        ? [{ viewCount: "desc" as const }, { createdAt: "desc" as const }]
+        : { createdAt: "desc" as const };
+
     const [posts, total] = await Promise.all([
       prisma.post.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy,
         skip,
         take: limit,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              bio: true,
-              createdAt: true,
-            },
-          },
-          tags: { include: { tag: true } },
-          _count: {
-            select: { comments: true, likes: true },
-          },
-        },
+        include: postListInclude(user?.id),
       }),
       prisma.post.count({ where }),
     ]);
 
-    const formattedPosts = posts.map((post) => ({
-      ...post,
-      tags: post.tags.map((pt) => pt.tag),
-    }));
+    let formattedPosts = posts.map(formatPostListItem);
 
-    return NextResponse.json({
-      data: formattedPosts,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    });
+    if (sort === "latest") {
+      const lowerQ = query.toLowerCase();
+      formattedPosts = [...formattedPosts].sort((a, b) => {
+        const aTitle = a.title.toLowerCase().includes(lowerQ) ? 0 : 1;
+        const bTitle = b.title.toLowerCase().includes(lowerQ) ? 0 : 1;
+        if (aTitle !== bTitle) return aTitle - bTitle;
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      });
+    }
+
+    return NextResponse.json(
+      {
+        data: formattedPosts,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      },
+      {
+        headers: user
+          ? {}
+          : { "Cache-Control": "public, max-age=60, s-maxage=120" },
+      }
+    );
   } catch (error) {
     console.error("[SEARCH_GET]", error);
-    return NextResponse.json(
-      { error: "Search failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Search failed" }, { status: 500 });
   }
 }

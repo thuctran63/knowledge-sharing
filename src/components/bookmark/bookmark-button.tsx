@@ -65,7 +65,7 @@ export function BookmarkButton({
       onClick={handleToggle}
       disabled={loading}
       className={cn(
-        "inline-flex items-center gap-1.5 text-sm transition-all duration-200",
+        "inline-flex h-9 items-center gap-1.5 text-sm transition-all duration-200",
         bookmarked
           ? "text-primary"
           : "text-muted-foreground hover:text-primary",
