@@ -1,6 +1,7 @@
 export const revalidate = 60;
 
 import Link from "next/link";
+import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -18,7 +19,7 @@ import {
 import { MainAppPage } from "@/components/layout/main-app-page";
 import { ArrowRight, Sparkles } from "lucide-react";
 
-async function getLatestPosts(userId?: string | null) {
+const getLatestPosts = cache(async function getLatestPosts(userId?: string | null) {
   const include = postListInclude(userId);
 
   const latestRows = await prisma.post.findMany({
@@ -34,27 +35,20 @@ async function getLatestPosts(userId?: string | null) {
     posts: items.map(formatPostListItem),
     nextCursor,
   };
-}
+});
 
-async function getFollowingPosts(userId: string) {
-  const follows = await prisma.follow.findMany({
-    where: { followerId: userId },
-    select: { followingId: true },
-  });
-  const followingIds = follows.map((f) => f.followingId);
+const getFollowingPosts = cache(async function getFollowingPosts(userId: string) {
   const include = postListInclude(userId);
 
-  if (followingIds.length === 0) {
-    return { posts: [], nextCursor: null as string | null };
-  }
-
-  const where = {
-    published: true,
-    authorId: { in: followingIds },
-  };
-
   const rows = await prisma.post.findMany({
-    where,
+    where: {
+      published: true,
+      author: {
+        followers: {
+          some: { followerId: userId }
+        }
+      }
+    },
     orderBy: { createdAt: "desc" },
     take: POSTS_PAGE_SIZE + 1,
     include,
@@ -66,9 +60,9 @@ async function getFollowingPosts(userId: string) {
     posts: items.map(formatPostListItem),
     nextCursor,
   };
-}
+});
 
-async function getTrendingPosts(userId?: string | null) {
+const getTrendingPosts = cache(async function getTrendingPosts(userId?: string | null) {
   const include = postListInclude(userId);
 
   const trendingRows = await prisma.post.findMany({
@@ -79,7 +73,7 @@ async function getTrendingPosts(userId?: string | null) {
   });
 
   return trendingRows.map(formatPostListItem);
-}
+});
 
 interface HomePageProps {
   searchParams: Promise<{ feed?: string }>;
