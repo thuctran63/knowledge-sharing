@@ -2,20 +2,31 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/db";
 import { getSiteUrl } from "@/lib/site-url";
 
+/** Regenerate at runtime — build on Vercel often has no DB. */
+export const revalidate = 3600;
+
+async function fetchSitemapData() {
+  try {
+    return await Promise.all([
+      prisma.post.findMany({
+        where: { published: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.tag.findMany({
+        select: { name: true },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+  } catch {
+    return [[], []] as const;
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getSiteUrl();
 
-  const [posts, tags] = await Promise.all([
-    prisma.post.findMany({
-      where: { published: true },
-      select: { slug: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
-    }),
-    prisma.tag.findMany({
-      select: { name: true },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const [posts, tags] = await fetchSitemapData();
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {

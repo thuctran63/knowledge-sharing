@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getSiteUrl } from "@/lib/site-url";
 
+export const revalidate = 3600;
+
 function escapeXml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -10,10 +12,8 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-export async function GET() {
-  const base = getSiteUrl();
-
-  const posts = await prisma.post.findMany({
+async function loadFeedPosts() {
+  return prisma.post.findMany({
     where: { published: true },
     orderBy: { createdAt: "desc" },
     take: 20,
@@ -26,8 +26,20 @@ export async function GET() {
       author: { select: { name: true } },
     },
   });
+}
+
+export async function GET() {
+  const base = getSiteUrl();
+
+  let posts: Awaited<ReturnType<typeof loadFeedPosts>> = [];
+  try {
+    posts = await loadFeedPosts();
+  } catch {
+    // DB unavailable at build or misconfigured DATABASE_URL
+  }
 
   const items = posts
+
     .map((post) => {
       const link = `${base}/post/${post.slug}`;
       const description =
