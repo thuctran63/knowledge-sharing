@@ -3,6 +3,7 @@ export const revalidate = 3600;
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { getPostBySlug, getPostForPage } from "@/lib/post-queries";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import { ArticleWithToc } from "@/components/post/article-with-toc";
 import { RelatedPosts } from "@/components/post/related-posts";
 import { formatDate, readingTime } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
-import { recordPostView } from "@/lib/post-views";
 import { getRelatedPosts } from "@/lib/related-posts";
 import { getSiteUrl } from "@/lib/site-url";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
@@ -31,78 +31,6 @@ interface PostPageProps {
 function extractFirstImageUrl(content: string): string | undefined {
   const match = content.match(/!\[[^\]]*\]\((https?:\/\/[^)]+)\)/);
   return match?.[1];
-}
-
-async function getPost(slug: string, userId?: string | null) {
-  try {
-    const post = await prisma.post.findUnique({
-      where: { slug },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            bio: true,
-            createdAt: true,
-          },
-        },
-        tags: { include: { tag: true } },
-        _count: { select: { comments: true, likes: true, bookmarks: true } },
-        likes: userId ? { where: { userId } } : false,
-        bookmarks: userId ? { where: { userId } } : false,
-      },
-    });
-
-    if (!post) return null;
-    if (!post.published && post.authorId !== userId) return null;
-
-    const newViewCount = await recordPostView(
-      post.id,
-      post.published,
-      userId
-    );
-
-    let isFollowingAuthor = false;
-    let authorFollowerCount = 0;
-
-    if (userId && userId !== post.authorId) {
-      const [follow, followerCount] = await Promise.all([
-        prisma.follow.findUnique({
-          where: {
-            followerId_followingId: {
-              followerId: userId,
-              followingId: post.authorId,
-            },
-          },
-        }),
-        prisma.follow.count({ where: { followingId: post.authorId } }),
-      ]);
-      isFollowingAuthor = !!follow;
-      authorFollowerCount = followerCount;
-    } else if (userId !== post.authorId) {
-      authorFollowerCount = await prisma.follow.count({
-        where: { followingId: post.authorId },
-      });
-    }
-
-    return {
-      ...post,
-      viewCount: newViewCount ?? post.viewCount,
-      tags: post.tags.map((pt) => pt.tag),
-      isLiked: post.likes ? (post.likes as unknown[]).length > 0 : false,
-      isBookmarked: post.bookmarks
-        ? (post.bookmarks as unknown[]).length > 0
-        : false,
-      isFollowingAuthor,
-      authorFollowerCount,
-      likes: undefined,
-      bookmarks: undefined,
-    };
-  } catch {
-    return null;
-  }
 }
 
 async function getComments(postId: string) {
@@ -130,18 +58,7 @@ async function getComments(postId: string) {
 
 export async function generateMetadata({ params }: PostPageProps) {
   const { slug } = await params;
-  const post = await prisma.post.findUnique({
-    where: { slug },
-    select: {
-      title: true,
-      excerpt: true,
-      content: true,
-      published: true,
-      createdAt: true,
-      updatedAt: true,
-      author: { select: { name: true } },
-    },
-  });
+  const post = await getPostBySlug(slug);
 
   if (!post) return { title: "Post not found" };
 
@@ -177,7 +94,7 @@ export async function generateMetadata({ params }: PostPageProps) {
 export default async function PostDetailPage({ params }: PostPageProps) {
   const { slug } = await params;
   const user = await getCurrentUser();
-  const post = await getPost(slug, user?.id);
+  const post = await getPostForPage(slug, user?.id);
 
   if (!post) notFound();
 

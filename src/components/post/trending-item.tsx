@@ -13,6 +13,7 @@ export function TrendingItem({ post, rank }: TrendingItemProps) {
   return (
     <Link
       href={`/post/${post.slug}`}
+      prefetch={false}
       className="group flex gap-3 px-4 py-3.5 transition-colors hover:bg-muted/40"
     >
       <span

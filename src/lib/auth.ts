@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { NextAuthOptions, getServerSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -123,11 +124,9 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-export async function getSession() {
-  return getServerSession(authOptions);
-}
+export const getSession = cache(async () => getServerSession(authOptions));
 
-export async function getCurrentUser() {
+export const getCurrentUser = cache(async () => {
   const session = await getSession();
   if (!session?.user?.id) return null;
 
@@ -144,4 +143,4 @@ export async function getCurrentUser() {
   });
 
   return user;
-}
+});

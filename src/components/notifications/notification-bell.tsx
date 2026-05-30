@@ -29,7 +29,16 @@ export function NotificationBell() {
   useEffect(() => {
     if (!session?.user) return;
 
-    void fetchUnreadCount();
+    const scheduleInitialFetch = () => void fetchUnreadCount();
+
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    if (typeof requestIdleCallback !== "undefined") {
+      idleId = requestIdleCallback(scheduleInitialFetch, { timeout: 3000 });
+    } else {
+      timeoutId = setTimeout(scheduleInitialFetch, 0);
+    }
 
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") {
@@ -37,7 +46,11 @@ export function NotificationBell() {
       }
     }, POLL_INTERVAL_MS);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (idleId !== undefined) cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      clearInterval(interval);
+    };
   }, [session?.user, fetchUnreadCount]);
 
   if (status === "loading" || !session?.user) return null;
@@ -49,7 +62,7 @@ export function NotificationBell() {
       size="icon"
       className={cn("relative", unreadCount > 0 && "text-primary")}
     >
-      <Link href="/notifications" aria-label="Notifications">
+      <Link href="/notifications" prefetch={false} aria-label="Notifications">
         <Bell className="h-5 w-5" strokeWidth={1.5} />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
