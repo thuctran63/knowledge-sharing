@@ -304,40 +304,43 @@ export default async function PostDetailPage({ params }: PostPageProps) {
                 </p>
               )}
 
-              <div className="flex flex-wrap items-center gap-4 mt-6">
-                <Link
-                  href={`/profile/${post.author.id}`}
-                  className="flex items-center gap-3 group"
-                >
-                  <UserAvatar
-                    src={post.author.image}
-                    name={post.author.name}
-                    size="md"
+              <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Link
+                    href={`/profile/${post.author.id}`}
+                    className="flex min-w-0 flex-1 items-center gap-3 group"
+                  >
+                    <UserAvatar
+                      src={post.author.image}
+                      name={post.author.name}
+                      size="md"
+                      className="shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium group-hover:text-primary transition-colors">
+                        {post.author.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(post.createdAt)}
+                      </p>
+                    </div>
+                  </Link>
+
+                  <FollowButton
+                    userId={post.author.id}
+                    initialFollowing={post.isFollowingAuthor}
+                    initialFollowerCount={post.authorFollowerCount}
+                    className="shrink-0"
                   />
-                  <div>
-                    <p className="text-sm font-medium group-hover:text-primary transition-colors">
-                      {post.author.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(post.createdAt)}
-                    </p>
-                  </div>
-                </Link>
+                </div>
 
-                <FollowButton
-                  userId={post.author.id}
-                  initialFollowing={post.isFollowingAuthor}
-                  initialFollowerCount={post.authorFollowerCount}
-                  className="shrink-0"
-                />
-
-                <div className="flex items-center gap-4 ml-auto text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground md:shrink-0">
                   <span className="flex items-center gap-1.5">
-                    <Clock className="h-4 w-4" strokeWidth={1.5} />
+                    <Clock className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                     {readingTime(post.content)} min read
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Eye className="h-4 w-4" strokeWidth={1.5} />
+                    <Eye className="h-4 w-4 shrink-0" strokeWidth={1.5} />
                     {post.viewCount.toLocaleString()}
                   </span>
                 </div>
