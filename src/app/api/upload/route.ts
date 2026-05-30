@@ -1,15 +1,12 @@
-import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 
 /**
- * Post images are uploaded via POST /api/posts/{postId}/images when saving.
- * Avatars are uploaded via PATCH /api/users/{id}.
+ * Post images: POST /api/posts/{postId}/images
+ * Avatars: PATCH /api/users/{id}
  */
 export async function POST() {
-  return NextResponse.json(
-    {
-      error:
-        "Direct upload is disabled. Use post save to upload images, or update your avatar from profile.",
-    },
-    { status: 410 }
+  return apiError(
+    "Direct upload is disabled. Use post save to upload images, or update your avatar from profile.",
+    410
   );
 }

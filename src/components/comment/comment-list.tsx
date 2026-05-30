@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { UserAvatar } from "@/components/user/user-avatar";
@@ -30,42 +30,71 @@ export function CommentList({ comments, postId }: CommentListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [optimisticComments, setOptimisticComments] =
+    useState<CommentWithAuthor[]>(comments);
 
-  const topLevelComments = comments.filter((c) => !c.parentId);
+  useEffect(() => {
+    setOptimisticComments(comments);
+  }, [comments]);
+
+  const topLevelComments = optimisticComments.filter((c) => !c.parentId);
 
   const getReplies = (commentId: string) =>
-    comments.filter((c) => c.parentId === commentId);
+    optimisticComments.filter((c) => c.parentId === commentId);
 
   const handleSubmit = async (parentId?: string) => {
     const content = parentId ? replyContent : newComment;
-    if (!content.trim()) return;
+    if (!content.trim() || !session?.user) return;
 
+    const tempId = `temp-${Date.now()}`;
+    const tempComment: CommentWithAuthor = {
+      id: tempId,
+      content: content.trim(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      authorId: session.user.id,
+      postId,
+      parentId: parentId ?? null,
+      author: {
+        id: session.user.id,
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        image: session.user.image ?? null,
+        bio: null,
+        createdAt: new Date(),
+      },
+    };
+
+    setOptimisticComments((prev) => [...prev, tempComment]);
+    setNewComment("");
+    setReplyContent("");
+    setReplyTo(null);
     setSubmitting(true);
 
     try {
-      await withLoading(async () => {
-        const res = await fetch("/api/comments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: content.trim(),
-            postId,
-            parentId: parentId || null,
-          }),
-        });
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: content.trim(),
+          postId,
+          parentId: parentId || null,
+        }),
+      });
 
-        if (!res.ok) throw new Error("Failed to post comment");
+      if (!res.ok) throw new Error("Failed to post comment");
 
-        setNewComment("");
-        setReplyContent("");
-        setReplyTo(null);
-        toast({
-          title: "Comment posted",
-          variant: "success",
-        });
-        router.refresh();
-      }, "Posting comment…");
+      const real = (await res.json()) as CommentWithAuthor;
+      setOptimisticComments((prev) =>
+        prev.map((c) => (c.id === tempId ? real : c))
+      );
+      toast({
+        title: "Comment posted",
+        variant: "success",
+      });
+      router.refresh();
     } catch {
+      setOptimisticComments((prev) => prev.filter((c) => c.id !== tempId));
       toast({
         title: "Error posting comment",
         variant: "destructive",
@@ -260,7 +289,7 @@ export function CommentList({ comments, postId }: CommentListProps) {
       <div className="flex items-center gap-2">
         <MessageCircle className="h-5 w-5" strokeWidth={1.5} />
         <h3 className="text-lg font-heading font-semibold">
-          Comments ({comments.length})
+          Comments ({optimisticComments.length})
         </h3>
       </div>
 
@@ -285,7 +314,7 @@ export function CommentList({ comments, postId }: CommentListProps) {
         </div>
       )}
 
-      {!session && comments.length === 0 && (
+      {!session && optimisticComments.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
           <Link href="/login" className="text-primary hover:underline">
             Sign in
@@ -294,7 +323,7 @@ export function CommentList({ comments, postId }: CommentListProps) {
         </p>
       )}
 
-      {comments.length > 0 ? (
+      {optimisticComments.length > 0 ? (
         <div className="divide-y divide-border/50">
           {topLevelComments.map((comment) => renderComment(comment))}
         </div>

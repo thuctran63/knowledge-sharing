@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { MainAppPage } from "@/components/layout/main-app-page";
 
 export default function NotificationsLoading() {
   return (
-    <div className="container py-6 md:py-10">
-      <div className="mx-auto w-full max-w-2xl space-y-4 px-4 sm:px-0">
+    <MainAppPage>
+      <div className="space-y-4">
         <Skeleton className="h-9 w-48" />
         <Skeleton className="h-4 w-32" />
         {Array.from({ length: 5 }).map((_, i) => (
@@ -16,6 +17,6 @@ export default function NotificationsLoading() {
           </div>
         ))}
       </div>
-    </div>
+    </MainAppPage>
   );
 }

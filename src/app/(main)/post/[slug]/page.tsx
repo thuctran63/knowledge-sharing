@@ -22,9 +22,11 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
+import { ReadingProgress } from "@/components/post/reading-progress";
 import { markdownComponents } from "@/components/post/markdown-components";
 import { FollowButton } from "@/components/user/follow-button";
 import { Clock, Eye, MessageCircle, PenLine } from "lucide-react";
+import { PostBackLinkWithSuspense } from "@/components/post/post-back-link";
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;
@@ -230,29 +232,37 @@ export default async function PostDetailPage({ params }: PostPageProps) {
 
   return (
     <article className="container max-w-7xl py-8 md:py-12">
+      {post.published && <ReadingProgress />}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
       <div className="mx-auto w-full">
-        {post.published && isAuthor && (
-          <div className="mb-6 flex flex-wrap items-center justify-end gap-2 animate-fade-in">
-            <Button asChild size="sm" variant="outline" className="gap-1.5">
-              <Link href={`/edit/${post.slug}`}>
-                <PenLine className="h-3.5 w-3.5" />
-                Edit article
-              </Link>
-            </Button>
-            <DeleteDraftButton
-              postId={post.id}
-              postTitle={post.title}
-              mode="published"
-              redirectTo="/drafts"
-              variant="outline"
-            />
-          </div>
-        )}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+          <PostBackLinkWithSuspense
+            published={post.published}
+            isAuthor={isAuthor}
+          />
+
+          {post.published && isAuthor && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
+                <Link href={`/edit/${post.slug}`}>
+                  <PenLine className="h-3.5 w-3.5" />
+                  Edit article
+                </Link>
+              </Button>
+              <DeleteDraftButton
+                postId={post.id}
+                postTitle={post.title}
+                mode="published"
+                redirectTo="/drafts"
+                variant="outline"
+              />
+            </div>
+          )}
+        </div>
 
         {!post.published && isAuthor && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 animate-fade-in">
@@ -297,6 +307,14 @@ export default async function PostDetailPage({ params }: PostPageProps) {
               <h1 className="text-2xl sm:text-3xl lg:text-[2rem] font-heading font-semibold tracking-tight leading-snug">
                 {post.title}
               </h1>
+
+              <div className="flex items-center gap-3 mt-3 text-sm text-muted-foreground">
+                <span>{readingTime(post.content)} min read</span>
+                <span aria-hidden>·</span>
+                <time dateTime={post.createdAt.toISOString()}>
+                  {formatDate(post.createdAt)}
+                </time>
+              </div>
 
               {post.excerpt && (
                 <p className="mt-4 text-lg text-muted-foreground leading-relaxed">

@@ -1,4 +1,4 @@
-import { extractMarkdownImageUrls } from "@/lib/r2";
+import { extractMarkdownImageUrls } from "@/lib/markdown-images";
 
 export type EditorSnapshot = {
   title: string;

@@ -1,62 +1,40 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { apiError, handleRouteError, validationError } from "@/lib/api-error";
 import {
-  NOTIFICATIONS_PAGE_SIZE,
-  serializeNotification,
-  notificationInclude,
-} from "@/lib/notifications";
+  listNotificationsQuerySchema,
+  patchNotificationsSchema,
+} from "@/lib/validations/notification";
+import {
+  listNotifications,
+  markNotificationsRead,
+} from "@/services/notification.service";
 
 export async function GET(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const { searchParams } = new URL(req.url);
-    const unreadOnly = searchParams.get("unread") === "1";
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const limit = Math.min(
-      parseInt(searchParams.get("limit") || String(NOTIFICATIONS_PAGE_SIZE), 10) ||
-        NOTIFICATIONS_PAGE_SIZE,
-      50
+    const parsed = listNotificationsQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries())
     );
-    const skip = (page - 1) * limit;
 
-    const where = {
-      userId: user.id,
-      ...(unreadOnly ? { read: false } : {}),
-    };
+    if (!parsed.success) {
+      return validationError(parsed.error);
+    }
 
-    const [notifications, total, unreadCount] = await Promise.all([
-      prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-        include: notificationInclude,
-      }),
-      prisma.notification.count({ where }),
-      prisma.notification.count({
-        where: { userId: user.id, read: false },
-      }),
-    ]);
-
-    return NextResponse.json({
-      unreadCount,
-      page,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
-      hasMore: page * limit < total,
-      notifications: notifications.map(serializeNotification),
+    const result = await listNotifications(user.id, {
+      page: parsed.data.page,
+      limit: parsed.data.limit,
+      unreadOnly: parsed.data.unread,
     });
+
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("[NOTIFICATIONS_GET]", error);
-    return NextResponse.json(
-      { error: "Failed to fetch notifications" },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }
 
@@ -64,42 +42,22 @@ export async function PATCH(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    const body = await req.json();
-
-    if (body.markAllRead) {
-      await prisma.notification.updateMany({
-        where: { userId: user.id, read: false },
-        data: { read: true },
-      });
-
-      return NextResponse.json({ success: true, unreadCount: 0 });
+    const body = patchNotificationsSchema.safeParse(await req.json());
+    if (!body.success) {
+      return validationError(body.error);
     }
 
-    if (Array.isArray(body.ids) && body.ids.length > 0) {
-      await prisma.notification.updateMany({
-        where: {
-          userId: user.id,
-          id: { in: body.ids },
-        },
-        data: { read: true },
-      });
-
-      const unreadCount = await prisma.notification.count({
-        where: { userId: user.id, read: false },
-      });
-
+    if ("markAllRead" in body.data) {
+      const unreadCount = await markNotificationsRead(user.id);
       return NextResponse.json({ success: true, unreadCount });
     }
 
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    const unreadCount = await markNotificationsRead(user.id, body.data.ids);
+    return NextResponse.json({ success: true, unreadCount });
   } catch (error) {
-    console.error("[NOTIFICATIONS_PATCH]", error);
-    return NextResponse.json(
-      { error: "Failed to update notifications" },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }

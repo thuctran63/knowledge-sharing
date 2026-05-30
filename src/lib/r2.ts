@@ -26,6 +26,7 @@ const S3 = new S3Client({
 export type UploadResult = {
   url: string;
   key: string;
+  blurDataURL?: string;
 };
 
 function randomSuffix() {
@@ -72,7 +73,15 @@ export async function uploadBuffer(
     })
   );
 
-  return { url: makePublicUrl(key), key };
+  let blurDataURL: string | undefined;
+  try {
+    const { generateBlurDataUrl } = await import("@/lib/r2-blur");
+    blurDataURL = await generateBlurDataUrl(body);
+  } catch {
+    blurDataURL = undefined;
+  }
+
+  return { url: makePublicUrl(key), key, blurDataURL };
 }
 
 export async function uploadFileToKey(
@@ -181,16 +190,9 @@ export async function deleteFileByUrl(url: string): Promise<void> {
   await deleteFile(key);
 }
 
-/** Markdown image URLs: ![alt](url) */
-export function extractMarkdownImageUrls(content: string): string[] {
-  const urls: string[] = [];
-  const regex = /!\[[^\]]*\]\(([^)]+)\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(content)) !== null) {
-    urls.push(match[1].trim());
-  }
-  return urls;
-}
+import { extractMarkdownImageUrls } from "@/lib/markdown-images";
+
+export { extractMarkdownImageUrls };
 
 /** Remove R2 images in posts/{postId}/ that are no longer referenced in content. */
 export async function cleanupOrphanPostImages(
@@ -210,8 +212,9 @@ export async function cleanupOrphanPostImages(
     if (key?.startsWith(prefix)) {
       try {
         await deleteFile(key);
-      } catch (e) {
-        console.error("[R2] Failed to delete orphan image:", key, e);
+      } catch {
+        const { queueR2Deletion } = await import("@/services/upload.service");
+        await queueR2Deletion(key).catch(() => undefined);
       }
     }
   }

@@ -1,83 +1,33 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { createNotification } from "@/lib/notifications";
+import { apiError, handleRouteError, validationError } from "@/lib/api-error";
+import {
+  createCommentSchema,
+  deleteCommentSchema,
+  updateCommentSchema,
+} from "@/lib/validations/comment";
+import {
+  createComment,
+  deleteComment,
+  updateComment,
+} from "@/services/comment.service";
 
 export async function POST(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    const { content, postId, parentId } = await req.json();
-
-    if (!content || !postId) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+    const body = createCommentSchema.safeParse(await req.json());
+    if (!body.success) {
+      return validationError(body.error);
     }
 
-    const post = await prisma.post.findUnique({ where: { id: postId } });
-    if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
-    }
-
-    let parentAuthorId: string | null = null;
-
-    if (parentId) {
-      const parent = await prisma.comment.findUnique({
-        where: { id: parentId },
-        select: { authorId: true, postId: true },
-      });
-      if (!parent || parent.postId !== postId) {
-        return NextResponse.json(
-          { error: "Invalid parent comment" },
-          { status: 400 }
-        );
-      }
-      parentAuthorId = parent.authorId;
-    }
-
-    const comment = await prisma.comment.create({
-      data: {
-        content,
-        postId,
-        authorId: user.id,
-        parentId: parentId || null,
-      },
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            bio: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
-
-    if (parentAuthorId) {
-      await createNotification({
-        userId: parentAuthorId,
-        type: "COMMENT_REPLY",
-        actorId: user.id,
-        postId,
-        commentId: parentId,
-      });
-    }
-
+    const comment = await createComment(user.id, body.data);
     return NextResponse.json(comment, { status: 201 });
   } catch (error) {
-    console.error("[COMMENT_POST]", error);
-    return NextResponse.json(
-      { error: "Failed to create comment" },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }
 
@@ -85,32 +35,22 @@ export async function PATCH(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    const { id, content } = await req.json();
-
-    const comment = await prisma.comment.findUnique({ where: { id } });
-    if (!comment) {
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    const body = updateCommentSchema.safeParse(await req.json());
+    if (!body.success) {
+      return validationError(body.error);
     }
 
-    if (comment.authorId !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const updated = await prisma.comment.update({
-      where: { id },
-      data: { content },
-    });
-
+    const updated = await updateComment(
+      body.data.id,
+      user.id,
+      body.data.content
+    );
     return NextResponse.json(updated);
   } catch (error) {
-    console.error("[COMMENT_PATCH]", error);
-    return NextResponse.json(
-      { error: "Failed to update comment" },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }
 
@@ -118,28 +58,17 @@ export async function DELETE(req: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
-    const { id } = await req.json();
-
-    const comment = await prisma.comment.findUnique({ where: { id } });
-    if (!comment) {
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+    const body = deleteCommentSchema.safeParse(await req.json());
+    if (!body.success) {
+      return validationError(body.error);
     }
 
-    if (comment.authorId !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    await prisma.comment.delete({ where: { id } });
-
+    await deleteComment(body.data.id, user.id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[COMMENT_DELETE]", error);
-    return NextResponse.json(
-      { error: "Failed to delete comment" },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }

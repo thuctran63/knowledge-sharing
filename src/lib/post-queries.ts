@@ -39,3 +39,16 @@ export function formatPostListItem(post: PostListRow) {
 }
 
 export const POSTS_PAGE_SIZE = 10;
+
+/** Slice `limit+1` rows and return cursor for the next page. */
+export function sliceWithCursor<T extends { id: string }>(
+  rows: T[],
+  limit: number
+): { items: T[]; nextCursor: string | null } {
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  return {
+    items,
+    nextCursor: hasMore && items.length > 0 ? items[items.length - 1].id : null,
+  };
+}

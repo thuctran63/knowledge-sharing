@@ -192,4 +192,14 @@ model PostView {
 
   @@unique([postId, viewerKey])
   @@index([postId, viewedAt])
+  @@index([viewedAt])
+}
+
+model PendingDeletion {
+  id        String   @id @default(cuid())
+  r2Key     String
+  createdAt DateTime @default(now())
+  attempts  Int      @default(0)
+
+  @@index([attempts, createdAt])
 }

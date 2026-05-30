@@ -5,15 +5,25 @@ import { Heart, MessageCircle, Eye, Clock, Bookmark } from "lucide-react";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate, readingTime, timeAgo } from "@/lib/utils";
+import { HighlightText } from "@/components/search/highlight-text";
+import { postHref, type PostBackFrom } from "@/lib/post-navigation";
 import type { PostCardData } from "@/types";
 import { memo } from "react";
 
 interface PostCardProps {
   post: PostCardData;
   featured?: boolean;
+  highlightQuery?: string;
+  /** Sets `?from=` on post link for Back navigation */
+  backFrom?: PostBackFrom;
 }
 
-export const PostCard = memo(function PostCard({ post, featured = false }: PostCardProps) {
+export const PostCard = memo(function PostCard({
+  post,
+  featured = false,
+  highlightQuery,
+  backFrom,
+}: PostCardProps) {
   return (
     <article
       className={cn(
@@ -21,7 +31,7 @@ export const PostCard = memo(function PostCard({ post, featured = false }: PostC
         featured && "md:col-span-2 md:grid md:grid-cols-2 md:gap-6"
       )}
     >
-      <Link href={`/post/${post.slug}`} className="block p-4 sm:p-5">
+      <Link href={postHref(post.slug, backFrom)} className="block p-4 sm:p-5">
         <div className="flex items-start justify-between gap-4">
           <div className={cn("flex-1 min-w-0", featured && "md:py-4")}>
             <div className="flex items-center gap-2.5 mb-3">
@@ -45,7 +55,11 @@ export const PostCard = memo(function PostCard({ post, featured = false }: PostC
                 featured ? "text-2xl md:text-3xl" : "text-lg"
               )}
             >
-              {post.title}
+              {highlightQuery ? (
+                <HighlightText text={post.title} query={highlightQuery} />
+              ) : (
+                post.title
+              )}
             </h2>
 
             {post.excerpt && (

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useDebouncedCallback } from "use-debounce";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -12,8 +13,16 @@ export function SearchBar() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const navigateSearch = useDebouncedCallback((value: string) => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    }
+  }, 300);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    navigateSearch.cancel();
     if (query.trim()) {
       router.push(`/search?q=${encodeURIComponent(query.trim())}`);
       inputRef.current?.blur();
@@ -34,7 +43,11 @@ export function SearchBar() {
         type="text"
         placeholder="Search articles..."
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          const value = e.target.value;
+          setQuery(value);
+          if (value.trim()) navigateSearch(value);
+        }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         className="h-9 w-full rounded-full border-border/60 bg-muted/50 pl-8 text-sm placeholder:text-muted-foreground/60 focus-visible:bg-background focus-visible:border-primary/30"

@@ -3,50 +3,53 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { PostCard } from "@/components/post/post-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
 import type { PostCardData } from "@/types";
 
 interface PostFeedProps {
   initialPosts: PostCardData[];
-  initialPage?: number;
-  initialTotalPages?: number;
+  initialNextCursor?: string | null;
   sort?: "latest" | "trending";
   feed?: "latest" | "following";
   tag?: string;
   userId?: string | null;
-  emptyMessage?: string;
+  emptyState?: {
+    title: string;
+    description: string;
+    action?: { label: string; href: string };
+  };
 }
 
 export function PostFeed({
   initialPosts,
-  initialPage = 1,
-  initialTotalPages = 1,
+  initialNextCursor = null,
   sort = "latest",
   feed = "latest",
   tag,
   userId,
-  emptyMessage = "No articles published yet.",
+  emptyState,
 }: PostFeedProps) {
   const [posts, setPosts] = useState(initialPosts);
-  const [page, setPage] = useState(initialPage);
-  const [totalPages, setTotalPages] = useState(initialTotalPages);
+  const [nextCursor, setNextCursor] = useState<string | null>(
+    initialNextCursor
+  );
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setPosts(initialPosts);
-    setPage(initialPage);
-    setTotalPages(initialTotalPages);
-  }, [initialPosts, initialPage, initialTotalPages, tag, sort, feed]);
+    setNextCursor(initialNextCursor);
+  }, [initialPosts, initialNextCursor, tag, sort, feed]);
 
   const loadMore = useCallback(async () => {
-    if (loading || page >= totalPages) return;
+    if (loading || !nextCursor) return;
 
     setLoading(true);
-    const nextPage = page + 1;
 
     try {
       const params = new URLSearchParams({
-        page: String(nextPage),
+        cursor: nextCursor,
         limit: "10",
         sort,
       });
@@ -64,19 +67,29 @@ export function PostFeed({
         const ids = new Set(prev.map((p) => p.id));
         return [...prev, ...incoming.filter((p) => !ids.has(p.id))];
       });
-      setPage(nextPage);
-      setTotalPages(data.totalPages ?? nextPage);
+      setNextCursor(data.nextCursor ?? null);
     } catch {
       // keep current list on error
     } finally {
       setLoading(false);
     }
-  }, [loading, page, totalPages, sort, feed, tag, userId]);
+  }, [loading, nextCursor, sort, feed, tag, userId]);
 
   if (posts.length === 0) {
+    if (emptyState) {
+      return (
+        <EmptyState
+          icon={FileText}
+          title={emptyState.title}
+          description={emptyState.description}
+          action={emptyState.action}
+        />
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-dashed border-border">
-        <p className="text-muted-foreground">{emptyMessage}</p>
+        <p className="text-muted-foreground">No articles published yet.</p>
       </div>
     );
   }
@@ -93,7 +106,7 @@ export function PostFeed({
         </div>
       ))}
 
-      {page < totalPages ? (
+      {nextCursor ? (
         <div className="flex justify-center pt-4">
           <Button
             type="button"

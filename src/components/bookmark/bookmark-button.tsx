@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
 import { Bookmark } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
+import { useOptimisticToggle } from "@/hooks/use-optimistic-toggle";
 
 interface BookmarkButtonProps {
   postId: string;
@@ -17,13 +17,26 @@ export function BookmarkButton({
   initialBookmarked,
   onChange,
 }: BookmarkButtonProps) {
-  const [bookmarked, setBookmarked] = useState(initialBookmarked);
-  const [loading, setLoading] = useState(false);
   const { data: session } = useSession();
   const { toast } = useToast();
-  const pendingRef = useRef(false);
 
-  const handleToggle = async () => {
+  const { state, toggle, isPending } = useOptimisticToggle({
+    initial: initialBookmarked,
+    getNext: (current) => !current,
+    persist: async (current, next) => {
+      const res = await fetch("/api/bookmarks", {
+        method: current ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId }),
+      });
+      if (!res.ok) throw new Error("Bookmark failed");
+      onChange?.(next);
+      return next;
+    },
+    errorMessage: "Could not update bookmark. Please try again.",
+  });
+
+  const handleClick = () => {
     if (!session) {
       toast({
         title: "Sign in required",
@@ -31,52 +44,26 @@ export function BookmarkButton({
       });
       return;
     }
-
-    if (pendingRef.current) return;
-    pendingRef.current = true;
-
-    setLoading(true);
-    const prev = bookmarked;
-    const next = !bookmarked;
-    setBookmarked(next);
-
-    try {
-      const res = await fetch("/api/bookmarks", {
-        method: bookmarked ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ postId }),
-      });
-
-      if (!res.ok) {
-        setBookmarked(prev);
-      } else {
-        onChange?.(next);
-      }
-    } catch {
-      setBookmarked(prev);
-    } finally {
-      setLoading(false);
-      pendingRef.current = false;
-    }
+    void toggle();
   };
 
   return (
     <button
-      onClick={handleToggle}
-      disabled={loading}
+      onClick={handleClick}
+      disabled={isPending}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 text-sm transition-all duration-200",
-        bookmarked
+        state
           ? "text-primary"
           : "text-muted-foreground hover:text-primary",
         "disabled:opacity-50"
       )}
-      aria-label={bookmarked ? "Remove bookmark" : "Bookmark"}
+      aria-label={state ? "Remove bookmark" : "Bookmark"}
     >
       <Bookmark
         className={cn(
           "h-5 w-5 transition-all duration-200",
-          bookmarked && "fill-current"
+          state && "fill-current"
         )}
         strokeWidth={1.5}
       />

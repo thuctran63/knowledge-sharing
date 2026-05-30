@@ -3,6 +3,7 @@ import { Clock, ExternalLink, PenLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
+import { postHref } from "@/lib/post-navigation";
 import { timeAgo, readingTime } from "@/lib/utils";
 
 interface PublishedArticleCardProps {
@@ -60,7 +61,7 @@ export function PublishedArticleCard({ post }: PublishedArticleCardProps) {
       </div>
       <div className="flex flex-wrap gap-2 shrink-0">
         <Button asChild variant="outline" size="sm" className="gap-1.5">
-          <Link href={`/post/${post.slug}`}>
+          <Link href={postHref(post.slug, "library")}>
             <ExternalLink className="h-3.5 w-3.5" />
             View
           </Link>

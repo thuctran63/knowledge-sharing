@@ -170,7 +170,7 @@ export function SearchContent() {
                 className="animate-fade-in"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
-                <PostCard post={post} />
+                <PostCard post={post} highlightQuery={query.trim()} />
               </div>
             ))}
           </div>

@@ -22,7 +22,7 @@ export function TagsContent() {
   const [searchResults, setSearchResults] = useState<TagItem[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [posts, setPosts] = useState<PostCardData[]>([]);
-  const [postsTotalPages, setPostsTotalPages] = useState(1);
+  const [postsNextCursor, setPostsNextCursor] = useState<string | null>(null);
   const [loadingTop, setLoadingTop] = useState(true);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(false);
@@ -72,7 +72,6 @@ export function TagsContent() {
         const params = new URLSearchParams({
           tag: tagName,
           limit: "10",
-          page: "1",
         });
         if (session?.user?.id) {
           params.set("userId", session.user.id);
@@ -81,10 +80,10 @@ export function TagsContent() {
         if (!res.ok) throw new Error("Failed to load posts");
         const data = await res.json();
         setPosts(data.data || []);
-        setPostsTotalPages(data.totalPages ?? 1);
+        setPostsNextCursor(data.nextCursor ?? null);
       } catch {
         setPosts([]);
-        setPostsTotalPages(1);
+        setPostsNextCursor(null);
       } finally {
         setLoadingPosts(false);
       }
@@ -256,11 +255,13 @@ export function TagsContent() {
                 <PostFeed
                   key={selectedTag}
                   initialPosts={posts}
-                  initialPage={1}
-                  initialTotalPages={postsTotalPages}
+                  initialNextCursor={postsNextCursor}
                   tag={selectedTag}
                   userId={session?.user?.id ?? null}
-                  emptyMessage="No published articles for this tag yet."
+                  emptyState={{
+                    title: "No articles for this tag",
+                    description: "No published articles with this tag yet.",
+                  }}
                 />
               )}
             </>

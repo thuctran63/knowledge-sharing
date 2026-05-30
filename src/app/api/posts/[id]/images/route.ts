@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { uploadPostImage } from "@/lib/r2";
+import { apiError, handleRouteError } from "@/lib/api-error";
+import { prisma } from "@/lib/db";
+import { uploadPostImageForUser } from "@/services/upload.service";
 import { validateImageFile } from "@/lib/image-upload";
 
 export async function POST(
@@ -12,7 +13,7 @@ export async function POST(
     const { id: postId } = await params;
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return apiError("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const post = await prisma.post.findUnique({
@@ -21,33 +22,29 @@ export async function POST(
     });
 
     if (!post) {
-      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+      return apiError("Post not found", 404, "NOT_FOUND");
     }
 
     if (post.authorId !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return apiError("Forbidden", 403, "FORBIDDEN");
     }
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return apiError("No file provided", 400, "VALIDATION_ERROR");
     }
 
     const validationError = validateImageFile(file);
     if (validationError) {
-      return NextResponse.json({ error: validationError }, { status: 400 });
+      return apiError(validationError, 400, "VALIDATION_ERROR");
     }
 
-    const result = await uploadPostImage(file, postId);
+    const result = await uploadPostImageForUser(file, postId);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    console.error("[POST_IMAGE_UPLOAD]", error);
-    return NextResponse.json(
-      { error: "Failed to upload image" },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }

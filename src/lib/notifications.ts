@@ -111,20 +111,9 @@ export function getNotificationHref(notification: {
   }
 }
 
-export type SerializedNotification = {
-  id: string;
-  type: string;
-  read: boolean;
-  createdAt: string;
-  commentId: string | null;
-  href: string;
-  actor: {
-    id: string;
-    name: string | null;
-    image: string | null;
-  } | null;
-  post: { id: string; slug: string; title: string } | null;
-};
+import type { SerializedNotification } from "@/types/notification";
+
+export type { SerializedNotification };
 
 export function serializeNotification(
   n: {

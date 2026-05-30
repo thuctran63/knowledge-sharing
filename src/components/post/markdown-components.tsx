@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Components } from "react-markdown";
 
 export const markdownComponents: Components = {
@@ -132,12 +133,16 @@ export const markdownComponents: Components = {
     const url = typeof src === "string" ? src : "";
     if (!url.trim()) return null;
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={url}
-        alt={alt ?? ""}
-        className="my-6 rounded-xl max-w-full h-auto border border-border/40"
-      />
+      <span className="relative my-6 block w-full overflow-hidden rounded-xl border border-border/40">
+        <Image
+          src={url}
+          alt={alt ?? ""}
+          width={1200}
+          height={675}
+          sizes="(max-width: 768px) 100vw, 800px"
+          className="h-auto w-full object-cover"
+        />
+      </span>
     );
   },
 };

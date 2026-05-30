@@ -121,6 +121,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
   const skipLeaveGuardRef = useRef(false);
   const pendingLeaveRef = useRef<(() => void) | null>(null);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stickyToolbarRef = useRef<HTMLDivElement>(null);
   const isPersistingRef = useRef(false);
   const draftInitRef = useRef(!!post);
   const addImageFilesRef = useRef<
@@ -304,7 +305,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = setTimeout(() => {
       void persistToServer({ createIfNeeded: true, silent: true });
-    }, 2000);
+    }, 2500);
 
     return () => {
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
@@ -331,6 +332,32 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [needsLeaveConfirm]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const viewport = window.visualViewport;
+    const reposition = () => {
+      const toolbar = stickyToolbarRef.current;
+      if (!toolbar) return;
+      const offset =
+        window.innerHeight - viewport.height - viewport.offsetTop;
+      toolbar.style.bottom =
+        offset > 0 && window.matchMedia("(max-width: 640px)").matches
+          ? `${offset}px`
+          : "";
+    };
+
+    viewport.addEventListener("resize", reposition);
+    viewport.addEventListener("scroll", reposition);
+    reposition();
+
+    return () => {
+      viewport.removeEventListener("resize", reposition);
+      viewport.removeEventListener("scroll", reposition);
+      if (stickyToolbarRef.current) stickyToolbarRef.current.style.bottom = "";
+    };
+  }, []);
 
   // Catch Ctrl+V when focus is on title/excerpt/tags (outside editor body)
   useEffect(() => {
@@ -613,7 +640,10 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
   return (
     <>
       <div className="bg-background pb-16">
-        <div className="sticky top-16 z-30 border-b border-border/50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+        <div
+          ref={stickyToolbarRef}
+          className="sticky top-16 z-30 border-b border-border/50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 max-sm:fixed max-sm:left-0 max-sm:right-0 max-sm:top-auto max-sm:bottom-0 max-sm:border-t max-sm:border-b-0"
+        >
           <div className={cn(editorShellClass, "py-2")}>
             <EditorToolbar
               variant={variant}

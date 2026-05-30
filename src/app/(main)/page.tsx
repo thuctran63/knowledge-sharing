@@ -7,27 +7,32 @@ import {
   formatPostListItem,
   postListInclude,
   POSTS_PAGE_SIZE,
+  sliceWithCursor,
 } from "@/lib/post-queries";
 import { HomeFeedTabs } from "@/components/home/home-feed-tabs";
-import { TrendingItem } from "@/components/post/trending-item";
-import { ArrowRight, TrendingUp, Sparkles } from "lucide-react";
+import { HomeFeedTabsHeader } from "@/components/home/home-feed-tabs-header";
+import {
+  TrendingPanel,
+  TrendingPanelHeader,
+} from "@/components/home/trending-panel";
+import { MainAppPage } from "@/components/layout/main-app-page";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 async function getLatestPosts(userId?: string | null) {
   const include = postListInclude(userId);
 
-  const [latestRows, latestTotal] = await Promise.all([
-    prisma.post.findMany({
-      where: { published: true },
-      orderBy: { createdAt: "desc" },
-      take: POSTS_PAGE_SIZE,
-      include,
-    }),
-    prisma.post.count({ where: { published: true } }),
-  ]);
+  const latestRows = await prisma.post.findMany({
+    where: { published: true },
+    orderBy: { createdAt: "desc" },
+    take: POSTS_PAGE_SIZE + 1,
+    include,
+  });
+
+  const { items, nextCursor } = sliceWithCursor(latestRows, POSTS_PAGE_SIZE);
 
   return {
-    posts: latestRows.map(formatPostListItem),
-    totalPages: Math.max(1, Math.ceil(latestTotal / POSTS_PAGE_SIZE)),
+    posts: items.map(formatPostListItem),
+    nextCursor,
   };
 }
 
@@ -40,7 +45,7 @@ async function getFollowingPosts(userId: string) {
   const include = postListInclude(userId);
 
   if (followingIds.length === 0) {
-    return { posts: [], totalPages: 1 };
+    return { posts: [], nextCursor: null as string | null };
   }
 
   const where = {
@@ -48,19 +53,18 @@ async function getFollowingPosts(userId: string) {
     authorId: { in: followingIds },
   };
 
-  const [rows, total] = await Promise.all([
-    prisma.post.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: POSTS_PAGE_SIZE,
-      include,
-    }),
-    prisma.post.count({ where }),
-  ]);
+  const rows = await prisma.post.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    take: POSTS_PAGE_SIZE + 1,
+    include,
+  });
+
+  const { items, nextCursor } = sliceWithCursor(rows, POSTS_PAGE_SIZE);
 
   return {
-    posts: rows.map(formatPostListItem),
-    totalPages: Math.max(1, Math.ceil(total / POSTS_PAGE_SIZE)),
+    posts: items.map(formatPostListItem),
+    nextCursor,
   };
 }
 
@@ -88,12 +92,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   const [latest, following, trending] = await Promise.all([
     getLatestPosts(user?.id),
-    user ? getFollowingPosts(user.id) : Promise.resolve({ posts: [], totalPages: 1 }),
+    user
+      ? getFollowingPosts(user.id)
+      : Promise.resolve({ posts: [], nextCursor: null as string | null }),
     getTrendingPosts(user?.id),
   ]);
 
   return (
-    <div className="container py-8 md:py-12">
+    <MainAppPage>
       <section className="mb-12 md:mb-16 animate-fade-in">
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary mb-6">
@@ -127,48 +133,32 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-        <div className="lg:col-span-2 space-y-8">
+      <div
+        className="grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-6 animate-fade-in"
+        style={{ animationDelay: "200ms" }}
+      >
+        <div className="lg:col-span-2">
+          <HomeFeedTabsHeader feed={feed} />
+        </div>
+        <div className="hidden lg:block">
+          <TrendingPanelHeader />
+        </div>
+
+        <div className="lg:col-span-2">
           <HomeFeedTabs
             feed={feed}
             latestPosts={latest.posts}
-            latestTotalPages={latest.totalPages}
+            latestNextCursor={latest.nextCursor}
             followingPosts={following.posts}
-            followingTotalPages={following.totalPages}
+            followingNextCursor={following.nextCursor}
             userId={user?.id ?? null}
           />
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
-          <section
-            className="animate-fade-in rounded-xl border border-border/60 bg-card/50 p-5"
-            style={{ animationDelay: "300ms" }}
-          >
-            <div className="flex items-center gap-2 mb-5 pb-4 border-b border-border/50">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                <TrendingUp className="h-4 w-4 text-primary" strokeWidth={2} />
-              </div>
-              <div>
-                <h2 className="text-lg font-heading font-semibold tracking-tight text-foreground">
-                  Trending
-                </h2>
-                <p className="text-xs text-foreground/60">Most read this week</p>
-              </div>
-            </div>
-            <div className="space-y-2.5">
-              {trending.length > 0 ? (
-                trending.map((post, i) => (
-                  <TrendingItem key={post.id} post={post} rank={i + 1} />
-                ))
-              ) : (
-                <p className="text-sm text-foreground/60 text-center py-8">
-                  No trending articles yet.
-                </p>
-              )}
-            </div>
-          </section>
+          <TrendingPanel posts={trending} />
         </aside>
       </div>
-    </div>
+    </MainAppPage>
   );
 }

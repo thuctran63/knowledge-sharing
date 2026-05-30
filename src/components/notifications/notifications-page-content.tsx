@@ -80,11 +80,11 @@ export function NotificationsPageContent({
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-4 sm:px-0">
+    <div className="w-full">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4 mb-2">
         <div className="flex items-center gap-2">
           <Bell className="h-6 w-6 text-primary" strokeWidth={1.5} />
-          <h1 className="text-2xl font-heading font-semibold tracking-tight">
+          <h1 className="text-3xl font-heading font-semibold tracking-tight">
             Notifications
           </h1>
           {unreadCount > 0 && (

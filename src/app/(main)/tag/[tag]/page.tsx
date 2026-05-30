@@ -7,6 +7,7 @@ import {
   formatPostListItem,
   postListInclude,
   POSTS_PAGE_SIZE,
+  sliceWithCursor,
 } from "@/lib/post-queries";
 import { PostFeed } from "@/components/post/post-feed";
 import { Hash } from "lucide-react";
@@ -32,17 +33,19 @@ async function getTagPosts(tagName: string, userId?: string | null) {
       prisma.post.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        take: POSTS_PAGE_SIZE,
+        take: POSTS_PAGE_SIZE + 1,
         include: postListInclude(userId),
       }),
       prisma.post.count({ where }),
     ]);
 
+    const { items, nextCursor } = sliceWithCursor(postsRows, POSTS_PAGE_SIZE);
+
     return {
       tag: tag.name,
       totalPosts,
-      posts: postsRows.map(formatPostListItem),
-      totalPages: Math.max(1, Math.ceil(totalPosts / POSTS_PAGE_SIZE)),
+      posts: items.map(formatPostListItem),
+      nextCursor,
     };
   } catch {
     return null;
@@ -86,11 +89,13 @@ export default async function TagPage({ params }: TagPageProps) {
 
         <PostFeed
           initialPosts={data.posts}
-          initialPage={1}
-          initialTotalPages={data.totalPages}
+          initialNextCursor={data.nextCursor}
           tag={data.tag}
           userId={user?.id ?? null}
-          emptyMessage="No published articles for this tag yet."
+          emptyState={{
+            title: "No articles for this tag",
+            description: "No published articles with this tag yet.",
+          }}
         />
       </div>
     </div>

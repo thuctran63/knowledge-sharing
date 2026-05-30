@@ -20,7 +20,7 @@ export function Header() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-transform duration-300 group-hover:scale-105">
             <BookOpen className="h-5 w-5" strokeWidth={1.5} />
           </div>
-          <span className="hidden sm:inline-block text-lg font-heading font-semibold tracking-tight">
+          <span className="text-base font-heading font-semibold tracking-tight sm:text-lg">
             Knowledge
             <span className="text-primary">.</span>
           </span>

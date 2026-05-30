@@ -1,51 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { NextResponse } from "next/server";
+import { handleRouteError, validationError } from "@/lib/api-error";
+import { listTagsQuerySchema } from "@/lib/validations/tag";
+import { listTags } from "@/services/tag.service";
 
-export async function GET(req: NextRequest) {
+export async function GET(req: Request) {
   try {
-    const q = req.nextUrl.searchParams.get("q")?.trim() || "";
-    const limitParam = req.nextUrl.searchParams.get("limit");
-    const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 10, 100) : q ? 50 : 10;
+    const { searchParams } = new URL(req.url);
+    const parsed = listTagsQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries())
+    );
 
-    const tags = await prisma.tag.findMany({
-      where: {
-        posts: {
-          some: {
-            post: { published: true },
-          },
-        },
-        ...(q
-          ? { name: { contains: q, mode: "insensitive" as const } }
-          : {}),
-      },
-      include: {
-        _count: {
-          select: {
-            posts: {
-              where: { post: { published: true } },
-            },
-          },
-        },
-      },
-      orderBy: {
-        posts: { _count: "desc" },
-      },
-      take: limit,
+    if (!parsed.success) {
+      return validationError(parsed.error);
+    }
+
+    const q = parsed.data.q.trim();
+    const limit =
+      parsed.data.limit ?? (q ? 50 : 10);
+
+    const tags = await listTags(q, limit);
+
+    return NextResponse.json(tags, {
+      headers: { "Cache-Control": "public, max-age=60, s-maxage=120" },
     });
-
-    return NextResponse.json(
-      tags.map((tag) => ({
-        id: tag.id,
-        name: tag.name,
-        count: tag._count.posts,
-      })),
-      { headers: { "Cache-Control": "public, max-age=60, s-maxage=120" } }
-    );
   } catch (error) {
-    console.error("[TAGS_GET]", error);
-    return NextResponse.json(
-      { error: "Failed to fetch tags" },
-      { status: 500 }
-    );
+    return handleRouteError(error);
   }
 }
