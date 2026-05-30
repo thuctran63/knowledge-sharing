@@ -5,6 +5,10 @@ export const listNotificationsQuerySchema = z.object({
     .string()
     .optional()
     .transform((v) => v === "1"),
+  onlyUnreadCount: z
+    .string()
+    .optional()
+    .transform((v) => v === "1"),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(50).default(30),
 });

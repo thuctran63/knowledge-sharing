@@ -26,6 +26,20 @@ export async function GET(req: Request) {
       return validationError(parsed.error);
     }
 
+    const { onlyUnreadCount } = parsed.data;
+
+    if (onlyUnreadCount) {
+      const { getUnreadCount } = await import(
+        "@/services/notification.service"
+      );
+      const unreadCount = await getUnreadCount(user.id);
+      return NextResponse.json({ unreadCount });
+    }
+
+    const { listNotifications } = await import(
+      "@/services/notification.service"
+    );
+
     const result = await listNotifications(user.id, {
       page: parsed.data.page,
       limit: parsed.data.limit,

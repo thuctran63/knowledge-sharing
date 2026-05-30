@@ -7,7 +7,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const POLL_INTERVAL_MS = 60_000;
+const POLL_INTERVAL_MS = 120_000;
 
 export function NotificationBell() {
   const { data: session, status } = useSession();
@@ -17,7 +17,7 @@ export function NotificationBell() {
     if (!session?.user) return;
 
     try {
-      const res = await fetch("/api/notifications?limit=1");
+      const res = await fetch("/api/notifications?onlyUnreadCount=1");
       if (!res.ok) return;
       const data = await res.json();
       setUnreadCount(data.unreadCount ?? 0);
@@ -35,9 +35,9 @@ export function NotificationBell() {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     if (typeof requestIdleCallback !== "undefined") {
-      idleId = requestIdleCallback(scheduleInitialFetch, { timeout: 3000 });
+      idleId = requestIdleCallback(scheduleInitialFetch, { timeout: 5000 });
     } else {
-      timeoutId = setTimeout(scheduleInitialFetch, 0);
+      timeoutId = setTimeout(scheduleInitialFetch, 2000);
     }
 
     const interval = setInterval(() => {
