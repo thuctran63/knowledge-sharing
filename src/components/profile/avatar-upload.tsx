@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { prepareImageFile, MAX_AVATAR_SIZE } from "@/lib/image-upload";
 import { Camera, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,10 +51,22 @@ export function AvatarUpload({
     : currentImage;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    fileRef.current = file;
-    const url = URL.createObjectURL(file);
+    const raw = e.target.files?.[0];
+    if (!raw) return;
+
+    const prepared = prepareImageFile(raw, MAX_AVATAR_SIZE);
+    if ("error" in prepared) {
+      toast({
+        title: "Invalid image",
+        description: prepared.error,
+        variant: "destructive",
+      });
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+
+    fileRef.current = prepared.file;
+    const url = URL.createObjectURL(prepared.file);
     setPreview(url);
     setOpen(true);
     if (inputRef.current) inputRef.current.value = "";
@@ -110,7 +123,7 @@ export function AvatarUpload({
             <input
               ref={inputRef}
               type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
+              accept="image/jpeg,image/png,image/gif,image/webp,.gif,.jpg,.jpeg,.png,.webp"
               className="hidden"
               onChange={handleFileSelect}
             />
@@ -140,7 +153,7 @@ export function AvatarUpload({
           <DialogHeader>
             <DialogTitle>Upload avatar</DialogTitle>
             <DialogDescription>
-              Preview how your avatar will look
+              JPEG, PNG, WebP, or animated GIF (max 10MB)
             </DialogDescription>
           </DialogHeader>
 
@@ -149,7 +162,7 @@ export function AvatarUpload({
               <UserAvatar src={preview} name={name} size="lg" className="h-32 w-32 shadow-md" />
             )}
             <p className="text-xs text-muted-foreground text-center max-w-[240px]">
-              Image will be center-cropped to a square
+              Shown as a circle across the site. GIFs stay animated.
             </p>
           </div>
 

@@ -6,7 +6,7 @@ import {
   deleteFileByUrl,
   getKeyFromUrl,
 } from "@/lib/r2";
-import { validateImageFile } from "@/lib/image-upload";
+import { validateImageFileOrNormalize, MAX_AVATAR_SIZE } from "@/lib/image-upload";
 
 export async function GET(
   req: Request,
@@ -84,19 +84,12 @@ export async function PATCH(
     }
 
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        return NextResponse.json(
-          { error: "File too large (max 5MB)" },
-          { status: 400 }
-        );
+      const prepared = validateImageFileOrNormalize(file, MAX_AVATAR_SIZE);
+      if ("error" in prepared) {
+        return NextResponse.json({ error: prepared.error }, { status: 400 });
       }
 
-      const validationError = validateImageFile(file);
-      if (validationError) {
-        return NextResponse.json({ error: validationError }, { status: 400 });
-      }
-
-      const result = await uploadUserAvatar(file, id);
+      const result = await uploadUserAvatar(prepared.file, id);
       updateData.image = result.url;
     }
 
