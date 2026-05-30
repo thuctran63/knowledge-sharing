@@ -583,7 +583,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
             title: published ? "Published!" : "Draft saved",
             description: published
               ? undefined
-              : "Find it anytime under My articles in the menu.",
+              : "Find it anytime in Library from the menu.",
             variant: "success",
           });
           if (published) {

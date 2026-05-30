@@ -26,8 +26,7 @@ import {
   Search,
   Home,
   Hash,
-  Bookmark,
-  FilePen,
+  Library,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -142,14 +141,8 @@ export function Header() {
                   </Link>
                   <Link href="/drafts">
                     <DropdownMenuItem className="cursor-pointer gap-2 min-h-[44px]">
-                      <FilePen className="h-4 w-4" />
-                      My articles
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/saved">
-                    <DropdownMenuItem className="cursor-pointer gap-2 min-h-[44px]">
-                      <Bookmark className="h-4 w-4" />
-                      Saved
+                      <Library className="h-4 w-4" />
+                      Library
                     </DropdownMenuItem>
                   </Link>
                   <DropdownMenuSeparator />
@@ -226,53 +219,6 @@ export function Header() {
             <Hash className="h-4 w-4" strokeWidth={1.5} />
             Browse by tags
           </Link>
-          {authLoading ? null : session?.user ? (
-            <>
-              <div className="border-t border-border/40 my-2" />
-              <Link
-                href="/post/new"
-                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <PenSquare className="h-4 w-4" strokeWidth={1.5} />
-                Write article
-              </Link>
-              <Link
-                href="/drafts"
-                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <FilePen className="h-4 w-4" strokeWidth={1.5} />
-                My articles
-              </Link>
-              <Link
-                href="/saved"
-                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Bookmark className="h-4 w-4" strokeWidth={1.5} />
-                Saved articles
-              </Link>
-              <Link
-                href={`/profile/${session.user.id}`}
-                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <User className="h-4 w-4" strokeWidth={1.5} />
-                Profile
-              </Link>
-              <button
-                onClick={() => {
-                  signOut();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex items-center gap-3 min-h-[44px] w-full px-3 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
-              >
-                <LogOut className="h-4 w-4" strokeWidth={1.5} />
-                Sign out
-              </button>
-            </>
-          ) : null}
         </div>
       </div>
     </header>
