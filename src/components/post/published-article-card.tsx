@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Clock, ExternalLink, PenLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DeleteDraftButton } from "@/components/post/delete-draft-button";
 import { timeAgo, readingTime } from "@/lib/utils";
 
 interface PublishedArticleCardProps {
@@ -70,6 +71,13 @@ export function PublishedArticleCard({ post }: PublishedArticleCardProps) {
             Edit
           </Link>
         </Button>
+        <DeleteDraftButton
+          postId={post.id}
+          postTitle={post.title}
+          mode="published"
+          redirectTo="/drafts"
+          variant="ghost"
+        />
       </div>
     </article>
   );

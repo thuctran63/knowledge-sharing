@@ -823,10 +823,11 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
                 </>
               )}
             </Button>
-            {postId && !published && (
+            {postId && (
               <DeleteDraftButton
                 postId={postId}
                 postTitle={title}
+                mode={published ? "published" : "draft"}
                 redirectTo="/drafts"
               />
             )}

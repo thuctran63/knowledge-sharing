@@ -20,7 +20,6 @@ import rehypeSlug from "rehype-slug";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
 import { Clock, Eye, Heart, MessageCircle, Bookmark, PenLine } from "lucide-react";
 
-
 interface PostPageProps {
   params: Promise<{ slug: string }>;
 }
@@ -109,6 +108,24 @@ export default async function PostDetailPage({ params }: PostPageProps) {
   return (
     <article className="container py-8 md:py-12">
       <div className="max-w-3xl mx-auto">
+        {post.published && isAuthor && (
+          <div className="mb-6 flex flex-wrap items-center justify-end gap-2 animate-fade-in">
+            <Button asChild size="sm" variant="outline" className="gap-1.5">
+              <Link href={`/edit/${post.slug}`}>
+                <PenLine className="h-3.5 w-3.5" />
+                Edit article
+              </Link>
+            </Button>
+            <DeleteDraftButton
+              postId={post.id}
+              postTitle={post.title}
+              mode="published"
+              redirectTo="/drafts"
+              variant="outline"
+            />
+          </div>
+        )}
+
         {!post.published && isAuthor && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 animate-fade-in">
             <div className="flex items-center gap-2">

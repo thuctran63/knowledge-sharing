@@ -15,10 +15,38 @@ import { useToast } from "@/components/ui/use-toast";
 import { useLoading } from "@/components/providers/loading-provider";
 import { cn } from "@/lib/utils";
 
+type DeletePostMode = "draft" | "published";
+
+const copyByMode = {
+  draft: {
+    label: "Delete draft",
+    dialogTitle: "Delete draft?",
+    displayFallback: "Untitled draft",
+    confirmLabel: "Delete draft",
+    successTitle: "Draft deleted",
+    errorTitle: "Could not delete draft",
+    loadingLabel: "Deleting article…",
+    description:
+      "will be permanently deleted, including any images. This cannot be undone.",
+  },
+  published: {
+    label: "Delete",
+    dialogTitle: "Delete article?",
+    displayFallback: "Untitled article",
+    confirmLabel: "Delete article",
+    successTitle: "Article deleted",
+    errorTitle: "Could not delete article",
+    loadingLabel: "Deleting article…",
+    description:
+      "will be permanently deleted, including comments, likes, and images. This cannot be undone.",
+  },
+} as const;
+
 interface DeleteDraftButtonProps {
   postId: string;
   postTitle?: string;
   redirectTo?: string;
+  mode?: DeletePostMode;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm";
   className?: string;
@@ -27,12 +55,13 @@ interface DeleteDraftButtonProps {
 
 export function DeleteDraftButton({
   postId,
-  postTitle = "this draft",
+  postTitle = "",
   redirectTo = "/drafts",
+  mode = "draft",
   variant = "ghost",
   size = "sm",
   className,
-  label = "Delete draft",
+  label,
 }: DeleteDraftButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -40,10 +69,11 @@ export function DeleteDraftButton({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const copy = copyByMode[mode];
   const displayTitle =
     postTitle.trim() && postTitle.toLowerCase() !== "untitled"
       ? postTitle
-      : "Untitled draft";
+      : copy.displayFallback;
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -52,16 +82,16 @@ export function DeleteDraftButton({
         const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to delete draft");
+          throw new Error(data.error || "Failed to delete post");
         }
-        toast({ title: "Draft deleted", variant: "success" });
+        toast({ title: copy.successTitle, variant: "success" });
         setConfirmOpen(false);
         router.push(redirectTo);
         router.refresh();
-      }, "Deleting article…");
+      }, copy.loadingLabel);
     } catch (error) {
       toast({
-        title: "Could not delete draft",
+        title: copy.errorTitle,
         description: error instanceof Error ? error.message : "Try again",
         variant: "destructive",
       });
@@ -83,16 +113,15 @@ export function DeleteDraftButton({
         onClick={() => setConfirmOpen(true)}
       >
         <Trash2 className="h-3.5 w-3.5" />
-        {label}
+        {label ?? copy.label}
       </Button>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete draft?</DialogTitle>
+            <DialogTitle>{copy.dialogTitle}</DialogTitle>
             <DialogDescription>
-              &ldquo;{displayTitle}&rdquo; will be permanently deleted,
-              including any images. This cannot be undone.
+              &ldquo;{displayTitle}&rdquo; {copy.description}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end pt-2">
@@ -119,7 +148,7 @@ export function DeleteDraftButton({
               ) : (
                 <>
                   <Trash2 className="h-4 w-4" />
-                  Delete draft
+                  {copy.confirmLabel}
                 </>
               )}
             </Button>
