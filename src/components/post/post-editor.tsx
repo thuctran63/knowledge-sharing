@@ -55,12 +55,12 @@ import type { Post } from "@prisma/client";
 
 const MarkdownPreview = dynamic(
   () => import("@/components/post/markdown-preview").then((m) => m.MarkdownPreview),
-  { loading: () => <div className="min-h-[min(60vh,560px)] animate-pulse rounded-2xl bg-muted" /> }
+  { loading: () => <div className="h-full min-h-[240px] animate-pulse rounded-2xl bg-muted" /> }
 );
 
 const EditorBody = dynamic(
   () => import("@/components/post/editor-body").then((m) => m.EditorBody),
-  { loading: () => <div className="min-h-[min(60vh,560px)] animate-pulse rounded-2xl bg-muted" /> }
+  { loading: () => <div className="h-full min-h-[240px] animate-pulse rounded-2xl bg-muted" /> }
 );
 
 type EditorView = "story" | "preview";
@@ -612,8 +612,8 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
 
   return (
     <>
-      <div className="min-h-[calc(100vh-4rem)]">
-        <div className="sticky top-16 z-30 border-b border-border/50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
+      <div className="flex min-h-[calc(100dvh-4rem)] flex-col">
+        <div className="sticky top-16 z-30 shrink-0 border-b border-border/50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
           <div className={cn(editorShellClass, "h-12 flex items-center")}>
             <EditorToolbar
               variant={variant}
@@ -625,7 +625,13 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           </div>
         </div>
 
-        <div className={cn(editorShellClass, "py-8 md:py-12 space-y-7 md:space-y-8")}>
+        <div
+          className={cn(
+            editorShellClass,
+            "flex flex-1 flex-col min-h-0 py-6 md:py-8 gap-6 md:gap-7"
+          )}
+        >
+        <div className="shrink-0 space-y-4 md:space-y-5">
         <Input
           type="text"
           placeholder="Title"
@@ -643,8 +649,10 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           className="resize-none border-0 bg-transparent px-0 text-base sm:text-lg text-muted-foreground placeholder:text-muted-foreground/30 focus-visible:ring-0"
           rows={2}
         />
+        </div>
 
-        <div className="space-y-3">
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
+          <div className="shrink-0 space-y-3">
           <div className="flex flex-wrap items-center justify-end gap-1">
             <div className="flex flex-wrap items-center gap-1">
               <input
@@ -731,7 +739,9 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
               check formatting. Images: paste, drop, or Insert image.
             </div>
           )}
+          </div>
 
+          <div className="min-h-0 flex-1">
           {editorView === "story" && (
             <EditorBody
               blocks={blocks}
@@ -748,13 +758,14 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           )}
 
           {editorView === "preview" && (
-            <div className="min-h-[min(60vh,560px)] rounded-2xl border border-border/80 bg-card p-6 sm:p-8 lg:p-10 shadow-sm">
+            <div className="h-full min-h-[240px] overflow-y-auto overscroll-y-contain rounded-2xl border border-border/80 bg-card p-6 sm:p-8 lg:p-10 shadow-sm">
               <MarkdownPreview content={content} />
             </div>
           )}
+          </div>
+          </div>
 
-        </div>
-
+        <div className="shrink-0 space-y-6 pt-2">
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
             Tags
@@ -868,6 +879,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
               )}
             </Button>
           </div>
+        </div>
         </div>
         </div>
       </div>

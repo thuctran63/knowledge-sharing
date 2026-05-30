@@ -13,14 +13,31 @@ import {
 
 export type FocusBlockRequest = { id: string; seq: number };
 
-function focusParagraphElement(id: string) {
+function focusParagraphElement(
+  id: string,
+  scrollContainer: HTMLElement | null
+) {
   const el = document.getElementById(`block-${id}`);
   if (!(el instanceof HTMLTextAreaElement) || el.disabled) return false;
 
-  el.scrollIntoView({ block: "center", behavior: "smooth" });
   el.focus({ preventScroll: true });
   const end = el.value.length;
   el.setSelectionRange(end, end);
+
+  if (scrollContainer) {
+    const padding = 20;
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+
+    if (elRect.top < containerRect.top + padding) {
+      scrollContainer.scrollTop += elRect.top - containerRect.top - padding;
+    } else if (elRect.bottom > containerRect.bottom - padding) {
+      scrollContainer.scrollTop += elRect.bottom - containerRect.bottom + padding;
+    }
+  } else {
+    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
   return true;
 }
 
@@ -51,16 +68,18 @@ export function EditorBody({
 }: EditorBodyProps) {
   const dragCounter = useRef(0);
   const focusBlockRef = useRef<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!focusBlockRequest) return;
 
     let cancelled = false;
     const { id } = focusBlockRequest;
+    const scrollContainer = scrollContainerRef.current;
 
     const attemptFocus = () => {
       if (cancelled) return false;
-      return focusParagraphElement(id);
+      return focusParagraphElement(id, scrollContainer);
     };
 
     const raf = requestAnimationFrame(() => {
@@ -111,7 +130,7 @@ export function EditorBody({
       ];
       onChange(next);
       requestAnimationFrame(() => {
-        document.getElementById(`block-${newBlock.id}`)?.focus();
+        focusParagraphElement(newBlock.id, scrollContainerRef.current);
       });
     }
 
@@ -126,7 +145,7 @@ export function EditorBody({
       onChange(blocks.filter((b) => b.id !== block.id));
       if (prev.type === "paragraph") {
         requestAnimationFrame(() => {
-          document.getElementById(`block-${prev.id}`)?.focus();
+          focusParagraphElement(prev.id, scrollContainerRef.current);
         });
       }
     }
@@ -168,7 +187,7 @@ export function EditorBody({
 
   return (
     <div
-      className="relative min-h-[min(60vh,560px)] rounded-2xl border border-border/80 bg-card shadow-sm"
+      className="relative flex h-full min-h-[240px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm"
       data-editor-body
       onPasteCapture={handlePaste}
       onDragEnter={handleDragEnter}
@@ -190,7 +209,11 @@ export function EditorBody({
         }
       }}
     >
-      <div className="space-y-2 p-6 sm:p-8 lg:p-10">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto overscroll-y-contain"
+      >
+        <div className="space-y-2 p-6 sm:p-8 lg:p-10">
         {blocks.map((block, index) => {
           if (block.type === "paragraph") {
             const prevBlock = index > 0 ? blocks[index - 1] : null;
@@ -218,7 +241,7 @@ export function EditorBody({
                 rows={Math.max(1, block.text.split("\n").length)}
                 className={cn(
                   "w-full resize-none border-0 bg-transparent p-0 text-[17px] sm:text-lg leading-[1.75] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 font-body",
-                  isEmpty && index === 0 && "min-h-[min(40vh,320px)]",
+                  isEmpty && index === 0 && "min-h-[160px]",
                   afterImage && "min-h-[44px]"
                 )}
               />
@@ -285,6 +308,7 @@ export function EditorBody({
             </figure>
           );
         })}
+        </div>
       </div>
 
       {isEmpty && !isDragging && (
