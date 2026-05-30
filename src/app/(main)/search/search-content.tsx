@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PostCard } from "@/components/post/post-card";
 import { Input } from "@/components/ui/input";
@@ -115,7 +116,11 @@ export function SearchContent() {
               No results found
             </h3>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Try adjusting your search terms or browsing by tags.
+              Try adjusting your search terms or{" "}
+              <Link href="/tags" className="text-primary hover:underline">
+                browse tags
+              </Link>
+              .
             </p>
           </div>
         )

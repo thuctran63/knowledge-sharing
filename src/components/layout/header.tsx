@@ -61,6 +61,12 @@ export function Header() {
             >
               Explore
             </Link>
+            <Link
+              href="/tags"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Tags
+            </Link>
           </nav>
         </div>
 
@@ -178,12 +184,14 @@ export function Header() {
 
       <div
         className={cn(
-          "md:hidden fixed inset-x-0 top-16 z-40 border-b border-border/40 bg-background/95 backdrop-blur-xl transition-all duration-200 overflow-hidden",
-          mobileMenuOpen ? "max-h-80" : "max-h-0"
+          "md:hidden fixed inset-x-0 top-16 z-40 border-b border-border/40 bg-background/95 backdrop-blur-xl transition-all duration-200",
+          mobileMenuOpen
+            ? "max-h-[calc(100dvh-4rem)] overflow-y-auto"
+            : "max-h-0 overflow-hidden"
         )}
         onKeyDown={(e) => e.key === "Escape" && setMobileMenuOpen(false)}
       >
-        <div className="container py-4 space-y-3">
+        <div className="container py-4 space-y-1">
           <Link
             href="/"
             className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
@@ -201,7 +209,7 @@ export function Header() {
             Search articles
           </Link>
           <Link
-            href="/search"
+            href="/tags"
             className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -220,20 +228,20 @@ export function Header() {
                 Write article
               </Link>
               <Link
-                href={`/profile/${session.user.id}`}
-                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <User className="h-4 w-4" strokeWidth={1.5} />
-                Profile
-              </Link>
-              <Link
                 href="/drafts"
                 className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <FilePen className="h-4 w-4" strokeWidth={1.5} />
                 My articles
+              </Link>
+              <Link
+                href={`/profile/${session.user.id}`}
+                className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <User className="h-4 w-4" strokeWidth={1.5} />
+                Profile
               </Link>
               <button
                 onClick={() => {
