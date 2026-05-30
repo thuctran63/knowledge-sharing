@@ -35,6 +35,7 @@ import {
   snapshotsEqual,
   isEmptyDraft,
   draftSlug,
+  syncDraftEditorUrl,
   urlsInSnapshot,
 } from "@/lib/post-editor-utils";
 import { getClipboardImageFiles, normalizePastedImageFile } from "@/lib/image-upload";
@@ -218,7 +219,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           slugRef.current = currentSlug;
 
           if (!post) {
-            router.replace(`/edit/${currentSlug}`);
+            syncDraftEditorUrl(currentSlug);
           }
         }
 
@@ -247,7 +248,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
         if (data.slug && data.slug !== slugRef.current) {
           setSlug(data.slug);
           slugRef.current = data.slug;
-          if (!post) router.replace(`/edit/${data.slug}`);
+          if (!post) syncDraftEditorUrl(data.slug);
         }
 
         lastSavedRef.current = makeSnapshot(

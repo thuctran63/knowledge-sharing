@@ -78,6 +78,14 @@ export function draftSlug() {
   return `draft-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 4)}`;
 }
 
+/** Update address bar to /edit/[slug] without triggering a Next.js navigation. */
+export function syncDraftEditorUrl(slug: string) {
+  if (typeof window === "undefined" || !slug) return;
+  const path = `/edit/${slug}`;
+  if (window.location.pathname === path) return;
+  window.history.replaceState(window.history.state, "", path);
+}
+
 export function urlsInSnapshot(snapshot: EditorSnapshot) {
   return new Set(extractMarkdownImageUrls(snapshot.content));
 }
