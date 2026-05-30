@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -27,16 +28,138 @@ import {
   Home,
   Hash,
   Library,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTheme } from "next-themes";
+
+function MobileThemeMenuItem({ onDone }: { onDone: () => void }) {
+  const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  const isDark = mounted && resolvedTheme === "dark";
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setTheme(isDark ? "light" : "dark");
+        onDone();
+      }}
+      className="flex md:hidden w-full items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+    >
+      {mounted && isDark ? (
+        <Sun className="h-4 w-4" strokeWidth={1.5} />
+      ) : (
+        <Moon className="h-4 w-4" strokeWidth={1.5} />
+      )}
+      {mounted ? (isDark ? "Light mode" : "Dark mode") : "Theme"}
+    </button>
+  );
+}
+
+function MobileNavOverlay({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || !open) return null;
+
+  return createPortal(
+    <>
+      <button
+        type="button"
+        aria-label="Close menu"
+        className="fixed inset-x-0 bottom-0 top-16 z-[40] bg-black/50 backdrop-blur-[2px] md:hidden"
+        onClick={onClose}
+      />
+
+      <nav
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+        className={cn(
+          "fixed inset-x-0 top-16 z-[48] md:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto",
+          "border-b border-border/40 bg-background shadow-lg",
+          "animate-in slide-in-from-top-2 fade-in-0 duration-200"
+        )}
+      >
+        <div className="container py-4 space-y-1">
+          <Link
+            href="/"
+            className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+            onClick={onClose}
+          >
+            <Home className="h-4 w-4" strokeWidth={1.5} />
+            Home
+          </Link>
+          <Link
+            href="/search"
+            className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+            onClick={onClose}
+          >
+            <Search className="h-4 w-4" strokeWidth={1.5} />
+            Search articles
+          </Link>
+          <Link
+            href="/tags"
+            className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+            onClick={onClose}
+          >
+            <Hash className="h-4 w-4" strokeWidth={1.5} />
+            Browse by tags
+          </Link>
+          <MobileThemeMenuItem onDone={onClose} />
+        </div>
+      </nav>
+    </>,
+    document.body
+  );
+}
 
 export function Header() {
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const authLoading = status === "loading";
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl backdrop-saturate-150">
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full border-b border-border/40",
+        mobileMenuOpen
+          ? "bg-background"
+          : "bg-background/80 backdrop-blur-xl backdrop-saturate-150"
+      )}
+    >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2.5 group">
@@ -82,7 +205,9 @@ export function Header() {
             </Button>
           </Link>
 
-          <ThemeToggle />
+          <div className="hidden md:block">
+            <ThemeToggle />
+          </div>
 
           <NotificationBell />
 
@@ -185,42 +310,7 @@ export function Header() {
         </div>
       </div>
 
-      <div
-        className={cn(
-          "md:hidden fixed inset-x-0 top-16 z-40 border-b border-border/40 bg-background/95 backdrop-blur-xl transition-all duration-200",
-          mobileMenuOpen
-            ? "max-h-[calc(100dvh-4rem)] overflow-y-auto"
-            : "max-h-0 overflow-hidden"
-        )}
-        onKeyDown={(e) => e.key === "Escape" && setMobileMenuOpen(false)}
-      >
-        <div className="container py-4 space-y-1">
-          <Link
-            href="/"
-            className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <Home className="h-4 w-4" strokeWidth={1.5} />
-            Home
-          </Link>
-          <Link
-            href="/search"
-            className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <Search className="h-4 w-4" strokeWidth={1.5} />
-            Search articles
-          </Link>
-          <Link
-            href="/tags"
-            className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <Hash className="h-4 w-4" strokeWidth={1.5} />
-            Browse by tags
-          </Link>
-        </div>
-      </div>
+      <MobileNavOverlay open={mobileMenuOpen} onClose={closeMobileMenu} />
     </header>
   );
 }
