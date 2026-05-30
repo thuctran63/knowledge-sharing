@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
+import { markdownComponents } from "@/components/post/markdown-components";
 
 const markdownPlugins = {
   remarkPlugins: [remarkGfm],
@@ -20,24 +21,10 @@ export function MarkdownPreview({ content }: { content: string }) {
   }
 
   return (
-    <ReactMarkdown
-      {...markdownPlugins}
-      components={{
-        img: ({ src, alt }) => {
-          const url = typeof src === "string" ? src : "";
-          if (!url.trim()) return null;
-          return (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={url}
-              alt={alt ?? ""}
-              className="rounded-lg max-w-full h-auto my-4"
-            />
-          );
-        },
-      }}
-    >
-      {content}
-    </ReactMarkdown>
+    <article className="markdown-article">
+      <ReactMarkdown {...markdownPlugins} components={markdownComponents}>
+        {content}
+      </ReactMarkdown>
+    </article>
   );
 }

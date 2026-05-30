@@ -60,6 +60,7 @@
   html {
     scroll-behavior: smooth;
     scrollbar-gutter: stable;
+    --site-header-offset: 5.25rem;
   }
 
   body {
@@ -77,23 +78,13 @@
 }
 
 @layer components {
+  /* Legacy wrapper — article typography lives in markdown-components.tsx */
   .prose-custom {
-    @apply prose prose-lg max-w-none
-      prose-headings:font-heading prose-headings:tracking-tight
-      prose-h1:text-3xl prose-h1:font-semibold
-      prose-h2:text-2xl prose-h2:font-semibold prose-h2:mt-10
-      prose-h3:text-xl prose-h3:font-semibold
-      prose-p:leading-relaxed prose-p:text-[15px]
-      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-      prose-strong:font-semibold
-      prose-code:rounded prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:text-sm prose-code:font-mono
-      prose-pre:rounded-xl prose-pre:bg-[#0f0f0f] prose-pre:border prose-pre:border-border/10
-      prose-img:rounded-xl
-      prose-blockquote:border-l-primary prose-blockquote:bg-muted/30 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg
-      prose-li:marker:text-primary/60
-      dark:prose-invert
-      dark:prose-pre:bg-[#1a1a1a]
-      dark:prose-blockquote:bg-muted/10;
+    @apply max-w-none text-foreground;
+  }
+
+  .markdown-article {
+    @apply max-w-none text-foreground;
   }
 }
 

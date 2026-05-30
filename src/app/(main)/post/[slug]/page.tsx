@@ -18,6 +18,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
+import { markdownComponents } from "@/components/post/markdown-components";
 import { Clock, Eye, Heart, MessageCircle, Bookmark, PenLine } from "lucide-react";
 
 interface PostPageProps {
@@ -211,6 +212,7 @@ export default async function PostDetailPage({ params }: PostPageProps) {
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeHighlight, rehypeSlug]}
+            components={markdownComponents}
           >
             {post.content}
           </ReactMarkdown>

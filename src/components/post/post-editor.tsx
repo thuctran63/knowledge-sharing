@@ -748,7 +748,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           )}
 
           {editorView === "preview" && (
-            <div className="min-h-[min(60vh,560px)] rounded-2xl border border-border/80 bg-card p-6 sm:p-8 lg:p-10 shadow-sm prose-custom max-w-none">
+            <div className="min-h-[min(60vh,560px)] rounded-2xl border border-border/80 bg-card p-6 sm:p-8 lg:p-10 shadow-sm">
               <MarkdownPreview content={content} />
             </div>
           )}
