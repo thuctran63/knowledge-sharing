@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <rect width="180" height="180" rx="40" fill="#C96F42"/>
+  <path
+    d="M90 50v80"
+    stroke="#F7F4EF"
+    stroke-width="10"
+    stroke-linecap="round"
+  />
+  <path
+    d="M45 58c6.5-4.25 16-6.5 25.5-6.5 9.3 0 18.8 2.25 25.5 6.5"
+    stroke="#F7F4EF"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M45 122V58"
+    stroke="#F7F4EF"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M135 58c-6.5-4.25-16-6.5-25.5-6.5-9.3 0-18.8 2.25-25.5 6.5"
+    stroke="#F7F4EF"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M135 122V58"
+    stroke="#F7F4EF"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

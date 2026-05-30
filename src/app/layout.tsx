@@ -35,6 +35,10 @@ export const metadata: Metadata = {
   },
   description:
     "A community-driven platform for sharing knowledge, insights, and ideas that matter.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+  },
   openGraph: {
     title: "Knowledge - Share ideas that matter",
     description:
