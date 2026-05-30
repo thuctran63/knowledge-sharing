@@ -127,9 +127,10 @@ export function CommentList({ comments, postId }: CommentListProps) {
 
     return (
     <div
+      id={`comment-${comment.id}`}
       key={comment.id}
       className={cn(
-        "animate-fade-in",
+        "animate-fade-in scroll-mt-24",
         isReply && "ml-4 pl-2 sm:ml-8 sm:pl-4 border-l-2 border-border/50"
       )}
     >

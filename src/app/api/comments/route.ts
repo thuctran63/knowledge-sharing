@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(req: Request) {
   try {
@@ -23,9 +24,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
 
+    let parentAuthorId: string | null = null;
+
     if (parentId) {
       const parent = await prisma.comment.findUnique({
         where: { id: parentId },
+        select: { authorId: true, postId: true },
       });
       if (!parent || parent.postId !== postId) {
         return NextResponse.json(
@@ -33,6 +37,7 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
+      parentAuthorId = parent.authorId;
     }
 
     const comment = await prisma.comment.create({
@@ -55,6 +60,16 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    if (parentAuthorId) {
+      await createNotification({
+        userId: parentAuthorId,
+        type: "COMMENT_REPLY",
+        actorId: user.id,
+        postId,
+        commentId: parentId,
+      });
+    }
 
     return NextResponse.json(comment, { status: 201 });
   } catch (error) {

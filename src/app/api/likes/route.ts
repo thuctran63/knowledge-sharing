@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(req: Request) {
   try {
@@ -10,6 +11,15 @@ export async function POST(req: Request) {
     }
 
     const { postId } = await req.json();
+
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true, authorId: true },
+    });
+
+    if (!post) {
+      return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
 
     const existing = await prisma.like.findUnique({
       where: { userId_postId: { userId: user.id, postId } },
@@ -21,6 +31,13 @@ export async function POST(req: Request) {
 
     await prisma.like.create({
       data: { userId: user.id, postId },
+    });
+
+    await createNotification({
+      userId: post.authorId,
+      type: "POST_LIKE",
+      actorId: user.id,
+      postId: post.id,
     });
 
     return NextResponse.json({ success: true }, { status: 201 });

@@ -23,6 +23,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
 import { markdownComponents } from "@/components/post/markdown-components";
+import { FollowButton } from "@/components/user/follow-button";
 import { Clock, Eye, MessageCircle, PenLine } from "lucide-react";
 
 interface PostPageProps {
@@ -59,7 +60,34 @@ async function getPost(slug: string, userId?: string | null) {
     if (!post) return null;
     if (!post.published && post.authorId !== userId) return null;
 
-    const newViewCount = await recordPostView(post.id, post.published);
+    const newViewCount = await recordPostView(
+      post.id,
+      post.published,
+      userId
+    );
+
+    let isFollowingAuthor = false;
+    let authorFollowerCount = 0;
+
+    if (userId && userId !== post.authorId) {
+      const [follow, followerCount] = await Promise.all([
+        prisma.follow.findUnique({
+          where: {
+            followerId_followingId: {
+              followerId: userId,
+              followingId: post.authorId,
+            },
+          },
+        }),
+        prisma.follow.count({ where: { followingId: post.authorId } }),
+      ]);
+      isFollowingAuthor = !!follow;
+      authorFollowerCount = followerCount;
+    } else if (userId !== post.authorId) {
+      authorFollowerCount = await prisma.follow.count({
+        where: { followingId: post.authorId },
+      });
+    }
 
     return {
       ...post,
@@ -69,6 +97,8 @@ async function getPost(slug: string, userId?: string | null) {
       isBookmarked: post.bookmarks
         ? (post.bookmarks as unknown[]).length > 0
         : false,
+      isFollowingAuthor,
+      authorFollowerCount,
       likes: undefined,
       bookmarks: undefined,
     };
@@ -293,6 +323,13 @@ export default async function PostDetailPage({ params }: PostPageProps) {
                     </p>
                   </div>
                 </Link>
+
+                <FollowButton
+                  userId={post.author.id}
+                  initialFollowing={post.isFollowingAuthor}
+                  initialFollowerCount={post.authorFollowerCount}
+                  className="shrink-0"
+                />
 
                 <div className="flex items-center gap-4 ml-auto text-sm text-muted-foreground">
                   <span className="flex items-center gap-1.5">

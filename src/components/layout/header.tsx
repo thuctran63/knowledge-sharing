@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { SearchBar } from "@/components/search/search-bar";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   BookOpen,
@@ -83,6 +84,8 @@ export function Header() {
           </Link>
 
           <ThemeToggle />
+
+          <NotificationBell />
 
           {authLoading ? (
             <div className="flex items-center gap-2">

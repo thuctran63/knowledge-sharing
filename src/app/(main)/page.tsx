@@ -8,43 +8,89 @@ import {
   postListInclude,
   POSTS_PAGE_SIZE,
 } from "@/lib/post-queries";
-import { PostFeed } from "@/components/post/post-feed";
+import { HomeFeedTabs } from "@/components/home/home-feed-tabs";
 import { TrendingItem } from "@/components/post/trending-item";
 import { ArrowRight, TrendingUp, Sparkles } from "lucide-react";
 
-async function getPosts(userId?: string | null) {
-  try {
-    const include = postListInclude(userId);
+async function getLatestPosts(userId?: string | null) {
+  const include = postListInclude(userId);
 
-    const [latestRows, latestTotal, trendingRows] = await Promise.all([
-      prisma.post.findMany({
-        where: { published: true },
-        orderBy: { createdAt: "desc" },
-        take: POSTS_PAGE_SIZE,
-        include,
-      }),
-      prisma.post.count({ where: { published: true } }),
-      prisma.post.findMany({
-        where: { published: true },
-        orderBy: { viewCount: "desc" },
-        take: 5,
-        include,
-      }),
-    ]);
+  const [latestRows, latestTotal] = await Promise.all([
+    prisma.post.findMany({
+      where: { published: true },
+      orderBy: { createdAt: "desc" },
+      take: POSTS_PAGE_SIZE,
+      include,
+    }),
+    prisma.post.count({ where: { published: true } }),
+  ]);
 
-    return {
-      latest: latestRows.map(formatPostListItem),
-      latestTotalPages: Math.max(1, Math.ceil(latestTotal / POSTS_PAGE_SIZE)),
-      trending: trendingRows.map(formatPostListItem),
-    };
-  } catch {
-    return { latest: [], latestTotalPages: 1, trending: [] };
-  }
+  return {
+    posts: latestRows.map(formatPostListItem),
+    totalPages: Math.max(1, Math.ceil(latestTotal / POSTS_PAGE_SIZE)),
+  };
 }
 
-export default async function HomePage() {
+async function getFollowingPosts(userId: string) {
+  const follows = await prisma.follow.findMany({
+    where: { followerId: userId },
+    select: { followingId: true },
+  });
+  const followingIds = follows.map((f) => f.followingId);
+  const include = postListInclude(userId);
+
+  if (followingIds.length === 0) {
+    return { posts: [], totalPages: 1 };
+  }
+
+  const where = {
+    published: true,
+    authorId: { in: followingIds },
+  };
+
+  const [rows, total] = await Promise.all([
+    prisma.post.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: POSTS_PAGE_SIZE,
+      include,
+    }),
+    prisma.post.count({ where }),
+  ]);
+
+  return {
+    posts: rows.map(formatPostListItem),
+    totalPages: Math.max(1, Math.ceil(total / POSTS_PAGE_SIZE)),
+  };
+}
+
+async function getTrendingPosts(userId?: string | null) {
+  const include = postListInclude(userId);
+
+  const trendingRows = await prisma.post.findMany({
+    where: { published: true },
+    orderBy: { viewCount: "desc" },
+    take: 5,
+    include,
+  });
+
+  return trendingRows.map(formatPostListItem);
+}
+
+interface HomePageProps {
+  searchParams: Promise<{ feed?: string }>;
+}
+
+export default async function HomePage({ searchParams }: HomePageProps) {
   const user = await getCurrentUser();
-  const { latest, latestTotalPages, trending } = await getPosts(user?.id);
+  const { feed: feedParam } = await searchParams;
+  const feed = feedParam === "following" ? "following" : "latest";
+
+  const [latest, following, trending] = await Promise.all([
+    getLatestPosts(user?.id),
+    user ? getFollowingPosts(user.id) : Promise.resolve({ posts: [], totalPages: 1 }),
+    getTrendingPosts(user?.id),
+  ]);
 
   return (
     <div className="container py-8 md:py-12">
@@ -83,38 +129,14 @@ export default async function HomePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
         <div className="lg:col-span-2 space-y-8">
-          <section className="animate-fade-in" style={{ animationDelay: "200ms" }}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-heading font-semibold tracking-tight">
-                Latest
-              </h2>
-              <Link
-                href="/search?sort=latest"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                View all
-              </Link>
-            </div>
-            {latest.length > 0 ? (
-              <PostFeed
-                initialPosts={latest}
-                initialPage={1}
-                initialTotalPages={latestTotalPages}
-                userId={user?.id ?? null}
-                emptyMessage="No articles published yet."
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-dashed border-border">
-                <p className="text-muted-foreground">No articles published yet.</p>
-                <Link
-                  href="/post/new"
-                  className="text-sm text-primary hover:underline mt-2"
-                >
-                  Be the first to write
-                </Link>
-              </div>
-            )}
-          </section>
+          <HomeFeedTabs
+            feed={feed}
+            latestPosts={latest.posts}
+            latestTotalPages={latest.totalPages}
+            followingPosts={following.posts}
+            followingTotalPages={following.totalPages}
+            userId={user?.id ?? null}
+          />
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">

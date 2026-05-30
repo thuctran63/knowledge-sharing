@@ -5,6 +5,7 @@ import {
   cleanupOrphanPostImages,
   deletePostImages,
 } from "@/lib/r2";
+import { notifyFollowersOfNewPost } from "@/lib/notifications";
 
 export async function GET(
   req: Request,
@@ -116,6 +117,10 @@ export async function PATCH(
         tags: { include: { tag: true } },
       },
     });
+
+    if (published === true && !post.published) {
+      await notifyFollowersOfNewPost(user.id, id);
+    }
 
     if (content !== undefined && content !== post.content) {
       await cleanupOrphanPostImages(id, content, post.content);

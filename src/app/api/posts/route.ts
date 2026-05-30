@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { notifyFollowersOfNewPost } from "@/lib/notifications";
 
 export async function GET(req: Request) {
   try {
@@ -9,11 +10,32 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const tag = searchParams.get("tag");
     const sort = searchParams.get("sort") || "latest";
+    const feed = searchParams.get("feed");
     const currentUserId = searchParams.get("userId");
 
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = { published: true };
+
+    if (feed === "following") {
+      if (!currentUserId) {
+        return NextResponse.json({
+          data: [],
+          total: 0,
+          page,
+          totalPages: 0,
+        });
+      }
+
+      const follows = await prisma.follow.findMany({
+        where: { followerId: currentUserId },
+        select: { followingId: true },
+      });
+      const followingIds = follows.map((f) => f.followingId);
+      where.authorId = followingIds.length
+        ? { in: followingIds }
+        : { in: ["__none__"] };
+    }
 
     if (tag) {
       where.tags = {
@@ -161,6 +183,10 @@ export async function POST(req: Request) {
         tags: { include: { tag: true } },
       },
     });
+
+    if (post.published) {
+      await notifyFollowersOfNewPost(user.id, post.id);
+    }
 
     return NextResponse.json(
       {

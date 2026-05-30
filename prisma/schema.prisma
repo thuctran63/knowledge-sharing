@@ -44,12 +44,16 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  posts    Post[]
-  comments Comment[]
-  likes    Like[]
-  bookmarks Bookmark[]
+  accounts              Account[]
+  sessions              Session[]
+  posts                 Post[]
+  comments              Comment[]
+  likes                 Like[]
+  bookmarks             Bookmark[]
+  following             Follow[]       @relation("Following")
+  followers             Follow[]       @relation("Followers")
+  notifications         Notification[] @relation("NotificationRecipient")
+  notificationsActed    Notification[] @relation("NotificationActor")
 }
 
 model VerificationToken {
@@ -74,10 +78,12 @@ model Post {
   authorId String
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  tags      PostTag[]
-  comments  Comment[]
-  likes     Like[]
-  bookmarks Bookmark[]
+  tags          PostTag[]
+  comments      Comment[]
+  likes         Like[]
+  bookmarks     Bookmark[]
+  views         PostView[]
+  notifications Notification[]
 
   @@index([published, createdAt])
   @@index([published, viewCount])
@@ -143,4 +149,47 @@ model Bookmark {
   post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  actorId   String?
+  postId    String?
+  commentId String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user  User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  post  Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}
+
+model PostView {
+  id        String   @id @default(cuid())
+  postId    String
+  viewerKey String
+  viewedAt  DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, viewerKey])
+  @@index([postId, viewedAt])
 }

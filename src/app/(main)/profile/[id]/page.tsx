@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { AvatarUpload } from "@/components/profile/avatar-upload";
 import { PostCard } from "@/components/post/post-card";
 import { DraftCard } from "@/components/post/draft-card";
+import { FollowButton } from "@/components/user/follow-button";
 import { Button } from "@/components/ui/button";
 import { Calendar, FileText, FilePen } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -36,7 +37,8 @@ async function getUserProfile(id: string, viewerId?: string | null) {
 
     const isOwner = viewerId === id;
 
-    const [posts, totalPosts, totalLikes, drafts] = await Promise.all([
+    const [posts, totalPosts, totalLikes, followerCount, isFollowing, drafts] =
+      await Promise.all([
       prisma.post.findMany({
         where: { authorId: id, published: true },
         orderBy: { createdAt: "desc" },
@@ -50,6 +52,17 @@ async function getUserProfile(id: string, viewerId?: string | null) {
       }),
       prisma.post.count({ where: { authorId: id, published: true } }),
       prisma.like.count({ where: { post: { authorId: id } } }),
+      prisma.follow.count({ where: { followingId: id } }),
+      viewerId && viewerId !== id
+        ? prisma.follow.findUnique({
+            where: {
+              followerId_followingId: {
+                followerId: viewerId,
+                followingId: id,
+              },
+            },
+          })
+        : Promise.resolve(null),
       isOwner
         ? prisma.post.findMany({
             where: { authorId: id, published: false },
@@ -70,7 +83,8 @@ async function getUserProfile(id: string, viewerId?: string | null) {
       user,
       posts: posts.map((p) => ({ ...p, tags: p.tags.map((pt) => pt.tag), isLiked: false, isBookmarked: false })),
       drafts: drafts.filter((d) => !isEmptyDraft(d)),
-      stats: { totalPosts, totalLikes },
+      stats: { totalPosts, totalLikes, followerCount },
+      isFollowing: !!isFollowing,
       isOwner,
     };
   } catch {
@@ -94,7 +108,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const data = await getUserProfile(id, viewer?.id);
   if (!data) notFound();
 
-  const { user, posts, drafts, stats, isOwner } = data;
+  const { user, posts, drafts, stats, isFollowing, isOwner } = data;
 
   return (
     <div className="container py-8 md:py-12">
@@ -123,7 +137,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               Joined {formatDate(user.createdAt)}
             </div>
 
-            <div className="flex items-center justify-center md:justify-start gap-6 mt-4">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 mt-4">
               <div className="text-center">
                 <p className="text-2xl font-heading font-semibold">
                   {stats.totalPosts}
@@ -132,11 +146,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
               <div className="text-center">
                 <p className="text-2xl font-heading font-semibold">
+                  {stats.followerCount}
+                </p>
+                <p className="text-xs text-muted-foreground">Followers</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-heading font-semibold">
                   {stats.totalLikes}
                 </p>
                 <p className="text-xs text-muted-foreground">Likes received</p>
               </div>
             </div>
+
+            {!isOwner && (
+              <div className="mt-6 flex justify-center md:justify-start">
+                <FollowButton
+                  userId={user.id}
+                  initialFollowing={isFollowing}
+                  initialFollowerCount={stats.followerCount}
+                />
+              </div>
+            )}
           </div>
         </div>
 

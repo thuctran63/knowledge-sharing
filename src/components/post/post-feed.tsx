@@ -11,6 +11,7 @@ interface PostFeedProps {
   initialPage?: number;
   initialTotalPages?: number;
   sort?: "latest" | "trending";
+  feed?: "latest" | "following";
   tag?: string;
   userId?: string | null;
   emptyMessage?: string;
@@ -21,6 +22,7 @@ export function PostFeed({
   initialPage = 1,
   initialTotalPages = 1,
   sort = "latest",
+  feed = "latest",
   tag,
   userId,
   emptyMessage = "No articles published yet.",
@@ -34,7 +36,7 @@ export function PostFeed({
     setPosts(initialPosts);
     setPage(initialPage);
     setTotalPages(initialTotalPages);
-  }, [initialPosts, initialPage, initialTotalPages, tag, sort]);
+  }, [initialPosts, initialPage, initialTotalPages, tag, sort, feed]);
 
   const loadMore = useCallback(async () => {
     if (loading || page >= totalPages) return;
@@ -48,6 +50,7 @@ export function PostFeed({
         limit: "10",
         sort,
       });
+      if (feed === "following") params.set("feed", "following");
       if (tag) params.set("tag", tag);
       if (userId) params.set("userId", userId);
 
@@ -68,7 +71,7 @@ export function PostFeed({
     } finally {
       setLoading(false);
     }
-  }, [loading, page, totalPages, sort, tag, userId]);
+  }, [loading, page, totalPages, sort, feed, tag, userId]);
 
   if (posts.length === 0) {
     return (
