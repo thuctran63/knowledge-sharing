@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getClipboardImageFiles } from "@/lib/image-upload";
@@ -8,36 +8,20 @@ import {
   type EditorBlock,
   blockId,
   updateParagraphBlock,
-  removeImageBlock,
+  blocksToMarkdown,
+  markdownToBlocks,
 } from "@/lib/markdown-blocks";
 
 export type FocusBlockRequest = { id: string; seq: number };
 
-function focusParagraphElement(
-  id: string,
-  scrollContainer: HTMLElement | null
-) {
+function focusParagraphElement(id: string) {
   const el = document.getElementById(`block-${id}`);
   if (!(el instanceof HTMLTextAreaElement) || el.disabled) return false;
 
   el.focus({ preventScroll: true });
   const end = el.value.length;
   el.setSelectionRange(end, end);
-
-  if (scrollContainer) {
-    const padding = 20;
-    const containerRect = scrollContainer.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-
-    if (elRect.top < containerRect.top + padding) {
-      scrollContainer.scrollTop += elRect.top - containerRect.top - padding;
-    } else if (elRect.bottom > containerRect.bottom - padding) {
-      scrollContainer.scrollTop += elRect.bottom - containerRect.bottom + padding;
-    }
-  } else {
-    el.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }
-
+  el.scrollIntoView({ block: "nearest", behavior: "smooth" });
   return true;
 }
 
@@ -68,18 +52,64 @@ export function EditorBody({
 }: EditorBodyProps) {
   const dragCounter = useRef(0);
   const focusBlockRef = useRef<string | null>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [selectAll, setSelectAll] = useState(false);
+
+  const clearSelectAll = useCallback(() => setSelectAll(false), []);
+
+  const resetToEmpty = useCallback(() => {
+    onChange([{ id: blockId(), type: "paragraph", text: "" }]);
+    setSelectAll(false);
+  }, [onChange]);
+
+  const handleSelectAll = useCallback(
+    (e: React.KeyboardEvent) => {
+      const target = e.target;
+      if (!(target instanceof HTMLTextAreaElement)) return;
+      if (!target.closest("[data-editor-body]")) return;
+
+      e.preventDefault();
+      setSelectAll(true);
+      target.setSelectionRange(0, target.value.length);
+    },
+    []
+  );
+
+  const handleSelectAllAction = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!selectAll) return;
+
+      if (e.key === "Backspace" || e.key === "Delete") {
+        e.preventDefault();
+        resetToEmpty();
+        return;
+      }
+
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        const newId = blockId();
+        onChange([{ id: newId, type: "paragraph", text: e.key }]);
+        setSelectAll(false);
+        requestAnimationFrame(() => focusParagraphElement(newId));
+        return;
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        clearSelectAll();
+      }
+    },
+    [selectAll, resetToEmpty, onChange, clearSelectAll]
+  );
 
   useEffect(() => {
     if (!focusBlockRequest) return;
 
     let cancelled = false;
     const { id } = focusBlockRequest;
-    const scrollContainer = scrollContainerRef.current;
 
     const attemptFocus = () => {
       if (cancelled) return false;
-      return focusParagraphElement(id, scrollContainer);
+      return focusParagraphElement(id);
     };
 
     const raf = requestAnimationFrame(() => {
@@ -120,33 +150,59 @@ export function EditorBody({
   ) => {
     if (block.type !== "paragraph") return;
 
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      const newBlock = { id: blockId(), type: "paragraph" as const, text: "" };
-      const next = [
-        ...blocks.slice(0, index + 1),
-        newBlock,
-        ...blocks.slice(index + 1),
-      ];
-      onChange(next);
-      requestAnimationFrame(() => {
-        focusParagraphElement(newBlock.id, scrollContainerRef.current);
-      });
+    if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+      handleSelectAll(e);
+      return;
     }
 
-    if (
-      e.key === "Backspace" &&
-      block.text === "" &&
-      blocks.length > 1 &&
-      index > 0
-    ) {
-      e.preventDefault();
-      const prev = blocks[index - 1];
-      onChange(blocks.filter((b) => b.id !== block.id));
-      if (prev.type === "paragraph") {
-        requestAnimationFrame(() => {
-          focusParagraphElement(prev.id, scrollContainerRef.current);
-        });
+    if (selectAll) {
+      handleSelectAllAction(e);
+      return;
+    }
+
+    if (e.key === "Backspace") {
+      const el = e.currentTarget;
+
+      if (block.text === "" && blocks.length > 1) {
+        e.preventDefault();
+        const prev = blocks[index - 1];
+        onChange(blocks.filter((b) => b.id !== block.id));
+        if (prev?.type === "paragraph") {
+          requestAnimationFrame(() => {
+            focusParagraphElement(prev.id);
+          });
+        }
+        return;
+      }
+
+      if (
+        el.selectionStart === 0 &&
+        el.selectionEnd === 0 &&
+        index > 0 &&
+        block.text.length > 0
+      ) {
+        const prev = blocks[index - 1];
+        if (prev.type === "paragraph") {
+          e.preventDefault();
+          const cursorPos = prev.text.length;
+          const mergedText = prev.text + block.text;
+          onChange(
+            blocks
+              .map((b) =>
+                b.id === prev.id && b.type === "paragraph"
+                  ? { ...b, text: mergedText }
+                  : b
+              )
+              .filter((b) => b.id !== block.id)
+          );
+          requestAnimationFrame(() => {
+            const merged = document.getElementById(`block-${prev.id}`);
+            if (merged instanceof HTMLTextAreaElement) {
+              merged.focus();
+              merged.setSelectionRange(cursorPos, cursorPos);
+            }
+          });
+        }
       }
     }
   };
@@ -173,23 +229,49 @@ export function EditorBody({
 
   const handlePaste = (e: React.ClipboardEvent) => {
     const imageFiles = getClipboardImageFiles(e.clipboardData);
-    if (!imageFiles.length) return;
+    if (imageFiles.length) {
+      e.preventDefault();
+      e.stopPropagation();
 
+      const anchor =
+        focusBlockRef.current ??
+        blocks.find((b) => b.type === "paragraph")?.id ??
+        null;
+      onPasteFiles(imageFiles, anchor);
+      return;
+    }
+
+    if (selectAll) {
+      const text = e.clipboardData.getData("text/plain");
+      if (text) {
+        e.preventDefault();
+        e.stopPropagation();
+        onChange(markdownToBlocks(text));
+        setSelectAll(false);
+      }
+    }
+  };
+
+  const handleCopy = (e: React.ClipboardEvent) => {
+    if (!selectAll) return;
     e.preventDefault();
-    e.stopPropagation();
+    e.clipboardData.setData("text/plain", blocksToMarkdown(blocks));
+  };
 
-    const anchor =
-      focusBlockRef.current ??
-      blocks.find((b) => b.type === "paragraph")?.id ??
-      null;
-    onPasteFiles(imageFiles, anchor);
+  const handleCut = (e: React.ClipboardEvent) => {
+    if (!selectAll) return;
+    e.preventDefault();
+    e.clipboardData.setData("text/plain", blocksToMarkdown(blocks));
+    resetToEmpty();
   };
 
   return (
     <div
-      className="relative flex h-full min-h-[240px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm"
+      className="relative rounded-2xl border border-border/80 bg-card shadow-sm"
       data-editor-body
       onPasteCapture={handlePaste}
+      onCopyCapture={handleCopy}
+      onCutCapture={handleCut}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={(e) => {
@@ -209,11 +291,7 @@ export function EditorBody({
         }
       }}
     >
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto overscroll-y-contain"
-      >
-        <div className="space-y-2 p-6 sm:p-8 lg:p-10">
+      <div className="space-y-2 p-6 sm:p-8 lg:p-10">
         {blocks.map((block, index) => {
           if (block.type === "paragraph") {
             const prevBlock = index > 0 ? blocks[index - 1] : null;
@@ -236,11 +314,18 @@ export function EditorBody({
                 onFocus={() => {
                   focusBlockRef.current = block.id;
                 }}
-                onChange={(e) => updateParagraph(block.id, e.target.value)}
+                onMouseDown={() => {
+                  if (selectAll) clearSelectAll();
+                }}
+                onChange={(e) => {
+                  if (selectAll) clearSelectAll();
+                  updateParagraph(block.id, e.target.value);
+                }}
                 onKeyDown={(e) => handleParagraphKeyDown(e, block, index)}
                 rows={Math.max(1, block.text.split("\n").length)}
                 className={cn(
-                  "w-full resize-none border-0 bg-transparent p-0 text-[17px] sm:text-lg leading-[1.75] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 font-body",
+                  "w-full resize-none border-0 bg-transparent p-0 text-[17px] sm:text-lg leading-[1.75] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 font-body transition-colors",
+                  selectAll && "bg-primary/10",
                   isEmpty && index === 0 && "min-h-[160px]",
                   afterImage && "min-h-[44px]"
                 )}
@@ -308,7 +393,6 @@ export function EditorBody({
             </figure>
           );
         })}
-        </div>
       </div>
 
       {isEmpty && !isDragging && (

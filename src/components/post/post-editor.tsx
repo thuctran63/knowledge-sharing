@@ -55,12 +55,12 @@ import type { Post } from "@prisma/client";
 
 const MarkdownPreview = dynamic(
   () => import("@/components/post/markdown-preview").then((m) => m.MarkdownPreview),
-  { loading: () => <div className="h-full min-h-[240px] animate-pulse rounded-2xl bg-muted" /> }
+  { loading: () => <div className="h-full min-h-0 animate-pulse rounded-2xl bg-muted" /> }
 );
 
 const EditorBody = dynamic(
   () => import("@/components/post/editor-body").then((m) => m.EditorBody),
-  { loading: () => <div className="h-full min-h-[240px] animate-pulse rounded-2xl bg-muted" /> }
+  { loading: () => <div className="h-full min-h-0 animate-pulse rounded-2xl bg-muted" /> }
 );
 
 type EditorView = "story" | "preview";
@@ -612,26 +612,83 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
 
   return (
     <>
-      <div className="flex min-h-[calc(100dvh-4rem)] flex-col">
-        <div className="sticky top-16 z-30 shrink-0 border-b border-border/50 bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
-          <div className={cn(editorShellClass, "h-12 flex items-center")}>
+      <div className="bg-background pb-16">
+        <div className="sticky top-16 z-30 border-b border-border/50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80">
+          <div className={cn(editorShellClass, "py-2")}>
             <EditorToolbar
               variant={variant}
               syncState={syncState}
               lastSavedAt={lastSavedAt}
               uploadLabel={uploadLabel}
               isDraft={!published}
+              actions={
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPublished(!published)}
+                    className={cn("hidden sm:inline-flex gap-1.5", published && "text-primary")}
+                  >
+                    {published ? (
+                      <>
+                        <Eye className="h-4 w-4" /> Public
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="h-4 w-4" /> Draft
+                      </>
+                    )}
+                  </Button>
+                  {postId && (
+                    <DeleteDraftButton
+                      postId={postId}
+                      postTitle={title}
+                      mode={published ? "published" : "draft"}
+                      redirectTo="/drafts"
+                      className="hidden sm:inline-flex"
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => requestLeave(() => router.back())}
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={
+                      publishing ||
+                      uploading ||
+                      syncState === "saving" ||
+                      blocks.some((b) => b.type === "image" && b.status === "uploading")
+                    }
+                    onClick={() => void handlePublish()}
+                    className="gap-1.5"
+                  >
+                    {publishing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {published ? "Publishing…" : "Saving…"}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4" />
+                        {published ? "Publish" : "Save draft"}
+                      </>
+                    )}
+                  </Button>
+                </>
+              }
             />
           </div>
         </div>
 
-        <div
-          className={cn(
-            editorShellClass,
-            "flex flex-1 flex-col min-h-0 py-6 md:py-8 gap-6 md:gap-7"
-          )}
-        >
-        <div className="shrink-0 space-y-4 md:space-y-5">
+        <div className={cn(editorShellClass, "py-6 md:py-8 space-y-6 md:space-y-7")}>
+        <div className="space-y-4 md:space-y-5">
         <Input
           type="text"
           placeholder="Title"
@@ -651,9 +708,8 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
         />
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="shrink-0 space-y-3">
-          <div className="flex flex-wrap items-center justify-end gap-1">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1">
               <input
                 ref={fileInputRef}
@@ -739,9 +795,7 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
               check formatting. Images: paste, drop, or Insert image.
             </div>
           )}
-          </div>
 
-          <div className="min-h-0 flex-1">
           {editorView === "story" && (
             <EditorBody
               blocks={blocks}
@@ -758,15 +812,13 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
           )}
 
           {editorView === "preview" && (
-            <div className="h-full min-h-[240px] overflow-y-auto overscroll-y-contain rounded-2xl border border-border/80 bg-card p-6 sm:p-8 lg:p-10 shadow-sm">
+            <div className="rounded-2xl border border-border/80 bg-card p-6 sm:p-8 lg:p-10 shadow-sm">
               <MarkdownPreview content={content} />
             </div>
           )}
-          </div>
-          </div>
+        </div>
 
-        <div className="shrink-0 space-y-6 pt-2">
-        <div className="space-y-2">
+        <div className="space-y-2 pt-2">
           <Label className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
             Tags
           </Label>
@@ -816,70 +868,6 @@ export function PostEditor({ post, variant = post ? "edit" : "new" }: PostEditor
               Add
             </Button>
           </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setPublished(!published)}
-              className={cn("gap-2", published && "text-primary")}
-            >
-              {published ? (
-                <>
-                  <Eye className="h-4 w-4" /> Will publish publicly
-                </>
-              ) : (
-                <>
-                  <EyeOff className="h-4 w-4" /> Save as draft only
-                </>
-              )}
-            </Button>
-            {postId && (
-              <DeleteDraftButton
-                postId={postId}
-                postTitle={title}
-                mode={published ? "published" : "draft"}
-                redirectTo="/drafts"
-              />
-            )}
-          </div>
-
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => requestLeave(() => router.back())}
-            >
-              Close
-            </Button>
-            <Button
-              type="button"
-              disabled={
-                publishing ||
-                uploading ||
-                syncState === "saving" ||
-                blocks.some((b) => b.type === "image" && b.status === "uploading")
-              }
-              onClick={() => void handlePublish()}
-              className="gap-2"
-            >
-              {publishing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {published ? "Publishing…" : "Saving…"}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  {published ? "Publish" : "Save draft"}
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
         </div>
         </div>
       </div>

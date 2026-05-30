@@ -14,6 +14,7 @@ interface EditorToolbarProps {
   uploadLabel?: string | null;
   isDraft?: boolean;
   className?: string;
+  actions?: React.ReactNode;
 }
 
 export function EditorToolbar({
@@ -23,6 +24,7 @@ export function EditorToolbar({
   uploadLabel,
   isDraft = true,
   className,
+  actions,
 }: EditorToolbarProps) {
   const backHref = variant === "edit" ? "/drafts" : "/";
   const backLabel = variant === "edit" ? "Articles" : "Home";
@@ -30,7 +32,7 @@ export function EditorToolbar({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 w-full text-sm",
+        "flex flex-wrap items-center justify-between gap-x-4 gap-y-2 w-full text-sm",
         className
       )}
     >
@@ -42,7 +44,7 @@ export function EditorToolbar({
         <span className="hidden sm:inline">{backLabel}</span>
       </Link>
 
-      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 ml-auto">
         {isDraft && (
           <Badge
             variant="secondary"
@@ -57,6 +59,7 @@ export function EditorToolbar({
           </span>
         )}
         <EditorSaveStatus syncState={syncState} lastSavedAt={lastSavedAt} />
+        {actions}
       </div>
     </div>
   );

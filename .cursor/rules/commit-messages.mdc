@@ -1,0 +1,39 @@
+---
+description: Quy ước commit message (generate & agent)
+alwaysApply: true
+---
+
+# Commit message
+
+Khi tạo hoặc đề xuất commit message (Generate Commit Message, agent commit):
+
+## Format
+
+```
+<type>(<scope>): <subject>
+
+[optional body — 1–2 câu, giải thích "why"]
+```
+
+- **subject**: imperative, ≤72 ký tự, không chấm cuối dòng
+- **scope** (optional): module ngắn, ví dụ `editor`, `auth`, `tags`, `ui`
+- **type**: `feat` | `fix` | `refactor` | `perf` | `docs` | `chore` | `style`
+
+## Ví dụ
+
+```
+feat(editor): scroll nội bộ vùng Write, không giãn cả page
+
+fix(toc): scroll tới heading đúng offset sticky header
+```
+
+```
+refactor(markdown): dùng shared components cho preview và post page
+```
+
+## Quy tắc
+
+- Tiếng Việt hoặc tiếng Anh đều được; **một commit một ngôn ngữ**, không trộn.
+- Mô tả **why** hơn là liệt kê file đã sửa.
+- Không commit `.env`, secrets, hoặc `.next/`.
+- Không amend/force push trừ khi user yêu cầu rõ.
