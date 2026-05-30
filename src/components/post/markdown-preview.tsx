@@ -2,13 +2,11 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import rehypeSlug from "rehype-slug";
 import { markdownComponents } from "@/components/post/markdown-components";
 
+/** Editor preview: GFM only — syntax highlight runs on publish (server). */
 const markdownPlugins = {
   remarkPlugins: [remarkGfm],
-  rehypePlugins: [rehypeHighlight, rehypeSlug],
 };
 
 export function MarkdownPreview({ content }: { content: string }) {

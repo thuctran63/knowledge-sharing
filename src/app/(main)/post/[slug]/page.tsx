@@ -17,13 +17,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { recordPostView } from "@/lib/post-views";
 import { getRelatedPosts } from "@/lib/related-posts";
 import { getSiteUrl } from "@/lib/site-url";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import rehypeSlug from "rehype-slug";
 import { DeleteDraftButton } from "@/components/post/delete-draft-button";
 import { ReadingProgress } from "@/components/post/reading-progress";
-import { markdownComponents } from "@/components/post/markdown-components";
+import { MarkdownArticle } from "@/components/post/markdown-article";
 import { FollowButton } from "@/components/user/follow-button";
 import { Clock, Eye, MessageCircle, PenLine } from "lucide-react";
 import { PostBackLinkWithSuspense } from "@/components/post/post-back-link";
@@ -404,13 +400,7 @@ export default async function PostDetailPage({ params }: PostPageProps) {
             </>
           }
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight, rehypeSlug]}
-            components={markdownComponents}
-          >
-            {post.content}
-          </ReactMarkdown>
+          <MarkdownArticle content={post.content} />
         </ArticleWithToc>
       </div>
     </article>
