@@ -30,6 +30,7 @@ import {
   Library,
   Moon,
   Sun,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
@@ -64,9 +65,11 @@ function MobileThemeMenuItem({ onDone }: { onDone: () => void }) {
 function MobileNavOverlay({
   open,
   onClose,
+  loggedIn,
 }: {
   open: boolean;
   onClose: () => void;
+  loggedIn: boolean;
 }) {
   const [mounted, setMounted] = useState(false);
 
@@ -118,6 +121,16 @@ function MobileNavOverlay({
             <Hash className="h-4 w-4" strokeWidth={1.5} />
             Browse by tags
           </Link>
+          {loggedIn && (
+            <Link
+              href="/notifications"
+              className="flex items-center gap-3 min-h-[44px] px-3 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+              onClick={onClose}
+            >
+              <Bell className="h-4 w-4" strokeWidth={1.5} />
+              Notifications
+            </Link>
+          )}
           <MobileThemeMenuItem onDone={onClose} />
         </div>
       </nav>
@@ -258,6 +271,12 @@ export function Header() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
+                  <Link href="/notifications">
+                    <DropdownMenuItem className="cursor-pointer gap-2 min-h-[44px]">
+                      <Bell className="h-4 w-4" />
+                      Notifications
+                    </DropdownMenuItem>
+                  </Link>
                   <Link href={`/profile/${session.user.id}`}>
                     <DropdownMenuItem className="cursor-pointer gap-2 min-h-[44px]">
                       <User className="h-4 w-4" />
@@ -310,7 +329,11 @@ export function Header() {
         </div>
       </div>
 
-      <MobileNavOverlay open={mobileMenuOpen} onClose={closeMobileMenu} />
+      <MobileNavOverlay
+        open={mobileMenuOpen}
+        onClose={closeMobileMenu}
+        loggedIn={!!session?.user}
+      />
     </header>
   );
 }

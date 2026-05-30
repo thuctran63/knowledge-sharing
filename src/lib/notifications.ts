@@ -110,3 +110,75 @@ export function getNotificationHref(notification: {
       return "/";
   }
 }
+
+export type SerializedNotification = {
+  id: string;
+  type: string;
+  read: boolean;
+  createdAt: string;
+  commentId: string | null;
+  href: string;
+  actor: {
+    id: string;
+    name: string | null;
+    image: string | null;
+  } | null;
+  post: { id: string; slug: string; title: string } | null;
+};
+
+export function serializeNotification(
+  n: {
+    id: string;
+    type: string;
+    read: boolean;
+    createdAt: Date;
+    commentId: string | null;
+    actorId: string | null;
+    actor: SerializedNotification["actor"];
+    post: SerializedNotification["post"];
+  }
+): SerializedNotification {
+  return {
+    id: n.id,
+    type: n.type,
+    read: n.read,
+    createdAt: n.createdAt.toISOString(),
+    commentId: n.commentId,
+    href: getNotificationHref(n),
+    actor: n.actor,
+    post: n.post,
+  };
+}
+
+export const NOTIFICATIONS_PAGE_SIZE = 30;
+
+export async function fetchNotificationsPage(
+  userId: string,
+  page: number,
+  limit = NOTIFICATIONS_PAGE_SIZE
+) {
+  const skip = (page - 1) * limit;
+
+  const where = { userId };
+
+  const [rows, total, unreadCount] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+      include: notificationInclude,
+    }),
+    prisma.notification.count({ where }),
+    prisma.notification.count({ where: { userId, read: false } }),
+  ]);
+
+  return {
+    notifications: rows.map(serializeNotification),
+    unreadCount,
+    page,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+    hasMore: page * limit < total,
+  };
+}

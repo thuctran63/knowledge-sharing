@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
+  NOTIFICATIONS_PAGE_SIZE,
+  serializeNotification,
   notificationInclude,
-  formatNotificationMessage,
-  getNotificationHref,
 } from "@/lib/notifications";
 
 export async function GET(req: Request) {
@@ -16,23 +16,28 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unread") === "1";
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
     const limit = Math.min(
-      parseInt(searchParams.get("limit") || "20", 10) || 20,
+      parseInt(searchParams.get("limit") || String(NOTIFICATIONS_PAGE_SIZE), 10) ||
+        NOTIFICATIONS_PAGE_SIZE,
       50
     );
+    const skip = (page - 1) * limit;
 
     const where = {
       userId: user.id,
       ...(unreadOnly ? { read: false } : {}),
     };
 
-    const [notifications, unreadCount] = await Promise.all([
+    const [notifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where,
         orderBy: { createdAt: "desc" },
+        skip,
         take: limit,
         include: notificationInclude,
       }),
+      prisma.notification.count({ where }),
       prisma.notification.count({
         where: { userId: user.id, read: false },
       }),
@@ -40,21 +45,11 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       unreadCount,
-      notifications: notifications.map((n) => ({
-        id: n.id,
-        type: n.type,
-        read: n.read,
-        createdAt: n.createdAt,
-        commentId: n.commentId,
-        message: formatNotificationMessage(
-          n.type,
-          n.actor?.name,
-          n.post?.title
-        ),
-        href: getNotificationHref(n),
-        actor: n.actor,
-        post: n.post,
-      })),
+      page,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      hasMore: page * limit < total,
+      notifications: notifications.map(serializeNotification),
     });
   } catch (error) {
     console.error("[NOTIFICATIONS_GET]", error);
